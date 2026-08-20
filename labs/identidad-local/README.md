@@ -57,6 +57,11 @@ En el README del grupo registren:
 
 - los cuatro componentes levantados;
 - qué rol conceptual cumple cada uno;
+    El cliente arma la solicitud de autorización (con PKCE) y la envía al IdP. Como resultado, recibe un ID Token (identifica al usuario) y un Access Token (autoriza su acceso a la API), y es quien adjunta este último en cada llamada a reservapp-api. En ningún momento maneja la contraseña del usuario.
+    El mock identity autentica la identidad del usuario (En este caso ana, por ejemplo) y emite el ID token y el access token, lo que nos dice quien es el usuario y que puede hacer dentro del sistema.
+    El gateway comprueba si viene un token en el header(Authorization), si no -> 401. Comprueba que el tipo de token sea correcto(Access Token, no ID Token). Luego verifica que la firma y el destinatario sean los indicados (issuer/audience). En caso de fallar alguno de los dos, el token es rechazado. Por ultimo se verifica que el token aun no expire(expiresIn)
+    reservapp-api es el dueño real de los datos  las reservas  quien aplica las reglas del dominio del negocio
+
 - una captura o salida que demuestre que ReservApp está operativa.
 
 ---
@@ -72,9 +77,13 @@ Una aplicación permite reconocer al usuario usando su identidad Google.
 Preguntas:
 
 1. ¿La aplicación recibe la contraseña de Google?
+Google(el IdP) si recibe la contraseña porque es él quien muestra el formulario de login y verifica las credenciales directamente. Es el cliente quien nunca ve las contraseñas. Lo único que la app recibe de vuelta son los token
 2. ¿Qué problema principal estamos resolviendo?
+l problema que resolvemos es la autenticación, es decir, permitir que la aplicación sepa quién es el usuario, reutilizando una identidad que ya existe (la cuenta de Google), sin que el usuario tenga que crear una cuenta y contraseña nuevas para cada app distinta.
 3. ¿Qué papel cumple Google?
+Google, en este caso, cumple el rol de Authorization Server / IdP. Es quien verifica las credenciales del usuario y emite el ID Token que confirma su identidad. El equivalente exacto al mock-identity
 4. ¿Cómo se relaciona este caso con OIDC?
+OpenID Connect es una capa de identidad construida sobre OAuth2, cuyo propósito específico es la autenticación. Se materializa concretamente en el ID Token, el elemento que OAuth2 puro no tenía y que OIDC agrega para responder "¿quién es este usuario?", distinto del Access Token que responde "¿qué puede hacer?".
 
 ### Caso 2 · Conectar Google Drive
 
