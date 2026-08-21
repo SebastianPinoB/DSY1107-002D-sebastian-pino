@@ -92,16 +92,25 @@ El usuario ya inició sesión, pero ahora una aplicación desea abrir o guardar 
 Preguntas:
 
 1. ¿El login anterior entrega automáticamente acceso al Drive?
+    No, primero hay que aceptar una especie de contrato con google (en este caso) para verificar a que elementos tendremos acceso a que el login inicial solo entrega una prueba de identidad (ID Token), no acceso a recursos.
 2. ¿Qué recurso protegido aparece ahora?
+    Los recursos que contiene el usuario en su drive
 3. ¿Por qué hace falta autorización adicional?
+    Porque identidad y permiso son cosas distintas, por lo que se necesita dos consentimientos diferentes:
+    Autenticación: "¿quién eres?"
+    Autorización: "¿me das permiso para hacer X sobre tu recurso Y?"
 4. ¿Cómo se relaciona este caso con OAuth2?
+    OAuth2 esta diseñado para que una aplicacion obtenga acceso limitado y con permisos especificos(scopes) a los recursos del usuario sin necesidad de que este comparta contraseñas.
 
 Conclusión esperada:
+
+-Caso 1 (OIDC) → ID Token → responde "¿quién eres?"
+-Caso 2 (OAuth2) → Access Token con scopes → responde "¿qué puedes hacer?"
 
 ```text
 reconocer quién eres ≠ obtener permiso para usar otro recurso
 ```
-
+    
 ---
 
 # Etapa C · Ejecutar Authorization Code + PKCE
