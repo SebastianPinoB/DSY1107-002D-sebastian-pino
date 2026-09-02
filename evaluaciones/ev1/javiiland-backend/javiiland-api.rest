@@ -1,0 +1,63 @@
+@baseUrl = http://localhost:8080
+@usuarioId = 1
+@reservaId = 1
+
+### Registrar usuario
+POST {{baseUrl}}/api/usuarios/registro
+Content-Type: application/json
+
+{
+  "username": "usuario2026",
+  "password": "secreto123",
+  "email": "usuario2026@example.com",
+  "fullName": "Usuario de Prueba"
+}
+
+### Iniciar sesión
+POST {{baseUrl}}/api/usuarios/login
+Content-Type: application/json
+
+{
+  "username": "usuario2026",
+  "password": "secreto123"
+}
+
+### Listar usuarios
+GET {{baseUrl}}/api/usuarios
+
+### Buscar usuario por ID
+GET {{baseUrl}}/api/usuarios/{{usuarioId}}
+
+### Crear reserva
+POST {{baseUrl}}/api/reservas?usuarioId={{usuarioId}}
+Content-Type: application/json
+
+{
+  "reservationDate": "2026-09-15",
+  "eventName": "Cumpleaños de prueba",
+  "description": "Reserva creada desde REST Client"
+}
+
+### Listar todas las reservas
+GET {{baseUrl}}/api/reservas
+
+### Listar reservas de un usuario
+GET {{baseUrl}}/api/reservas/usuario/{{usuarioId}}
+
+### Buscar reserva por ID
+GET {{baseUrl}}/api/reservas/{{reservaId}}
+
+### Consultar disponibilidad del calendario
+GET {{baseUrl}}/api/reservas/calendario?inicio=2026-09-01&fin=2026-09-30
+
+### Actualizar reserva
+PUT {{baseUrl}}/api/reservas/{{reservaId}}
+Content-Type: application/json
+
+{
+  "eventName": "Cumpleaños actualizado",
+  "description": "Descripción modificada"
+}
+
+### Cancelar reserva
+DELETE {{baseUrl}}/api/reservas/{{reservaId}}
