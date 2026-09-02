@@ -10,10 +10,10 @@ import com.example.javiiland.model.ReservaStatus;
 
 public interface ReservaRepository extends JpaRepository<Reserva, Long> {
  
-    boolean existsByReservationDateAndStatus(LocalDate date, ReservaStatus status);
+    boolean existsByFechaReservaAndEstatus(LocalDate date, ReservaStatus status);
  
-    List<Reserva> findByReservationDateBetweenAndStatus(LocalDate start, LocalDate end, ReservaStatus status);
+    List<Reserva> findByFechaReservaBetweenAndEstatus(LocalDate start, LocalDate end, ReservaStatus status);
  
-    List<Reserva> findByUserId(Long userId);
+    List<Reserva> findByUsuarioId(Long userId);
 }
  
