@@ -11,6 +11,8 @@ const FILTROS = [
   { id: 'CANCELLED', label: 'Canceladas' },
 ]
 
+const CREATE_FORM_INICIAL = { usuarioId: '', reservationDate: '', eventName: '', description: '', esBloqueo: false }
+
 export default function AdminDashboardPage() {
   const [reservas, setReservas] = useState([])
   const [usuarios, setUsuarios] = useState([])
@@ -19,11 +21,12 @@ export default function AdminDashboardPage() {
   const [filtro, setFiltro] = useState('CONFIRMED')
 
   const [showCreateForm, setShowCreateForm] = useState(false)
-  const [createForm, setCreateForm] = useState({ usuarioId: '', reservationDate: '', eventName: '', description: '' })
+  const [createForm, setCreateForm] = useState(CREATE_FORM_INICIAL)
   const [createError, setCreateError] = useState('')
   const [creating, setCreating] = useState(false)
 
   const [cancellingId, setCancellingId] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
 
   async function loadData() {
     setLoading(true)
@@ -64,27 +67,46 @@ export default function AdminDashboardPage() {
     }
   }
 
+  async function handleEliminarDefinitivo(id, tipo) {
+    const mensaje =
+      tipo === 'BLOQUEO'
+        ? '¿Eliminar este bloqueo definitivamente? No se puede deshacer.'
+        : '¿Eliminar esta reserva definitivamente? Se borra del historial y no se puede deshacer. Si solo quieres liberar la fecha, usa "Cancelar" en vez de esto.'
+    if (!window.confirm(mensaje)) return
+    setDeletingId(id)
+    try {
+      await reservaService.eliminarDefinitivo(id)
+      await loadData()
+    } catch (err) {
+      setError(extractErrorMessage(err, 'No se pudo eliminar la reserva.'))
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   function handleCreateChange(e) {
-    setCreateForm((f) => ({ ...f, [e.target.name]: e.target.value }))
+    const { name, type, value, checked } = e.target
+    setCreateForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
   }
 
   async function handleCreateSubmit(e) {
     e.preventDefault()
     setCreateError('')
 
-    if (!createForm.usuarioId) {
-      setCreateError('Elige a nombre de qué usuario se hace la reserva.')
+    if (!createForm.esBloqueo && !createForm.usuarioId) {
+      setCreateError('Elige a nombre de qué usuario se hace la reserva, o marca "Bloquear día".')
       return
     }
 
     setCreating(true)
     try {
-      await reservaService.crear(Number(createForm.usuarioId), {
+      await reservaService.crearComoAdmin({
         reservationDate: createForm.reservationDate,
         eventName: createForm.eventName,
         description: createForm.description,
+        usuarioId: createForm.esBloqueo ? undefined : Number(createForm.usuarioId),
       })
-      setCreateForm({ usuarioId: '', reservationDate: '', eventName: '', description: '' })
+      setCreateForm(CREATE_FORM_INICIAL)
       setShowCreateForm(false)
       await loadData()
     } catch (err) {
@@ -99,7 +121,7 @@ export default function AdminDashboardPage() {
       <div className="page__heading page__heading--split">
         <div>
           <h1>Panel de administración</h1>
-          <p>Gestiona todas las reservas de Javiiland: crea, edita o cancela cualquier fecha.</p>
+          <p>Gestiona todas las reservas de Javiiland: crea, edita, cancela o bloquea cualquier fecha.</p>
         </div>
         <button className="btn btn--primary" onClick={() => setShowCreateForm((v) => !v)}>
           {showCreateForm ? 'Cerrar' : 'Nueva reserva'}
@@ -108,20 +130,27 @@ export default function AdminDashboardPage() {
 
       {showCreateForm && (
         <form onSubmit={handleCreateSubmit} className="form card admin-create-form">
-          <h2>Crear reserva a nombre de un usuario</h2>
+          <h2>Crear reserva o bloquear un día</h2>
+
+          <label className="field field--checkbox">
+            <input type="checkbox" name="esBloqueo" checked={createForm.esBloqueo} onChange={handleCreateChange} />
+            <span>Bloquear día (sin cliente asociado) — mantención, uso personal, corrección de error, etc.</span>
+          </label>
 
           <div className="form-row">
-            <label className="field">
-              <span>Usuario</span>
-              <select name="usuarioId" value={createForm.usuarioId} onChange={handleCreateChange} required>
-                <option value="">Selecciona un usuario</option>
-                {usuarios.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.fullName || u.username} (@{u.username})
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!createForm.esBloqueo && (
+              <label className="field">
+                <span>Usuario</span>
+                <select name="usuarioId" value={createForm.usuarioId} onChange={handleCreateChange} required>
+                  <option value="">Selecciona un usuario</option>
+                  {usuarios.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.fullName || u.username} (@{u.username})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             <label className="field">
               <span>Fecha</span>
@@ -136,8 +165,14 @@ export default function AdminDashboardPage() {
           </div>
 
           <label className="field">
-            <span>Nombre del evento</span>
-            <input name="eventName" value={createForm.eventName} onChange={handleCreateChange} required />
+            <span>{createForm.esBloqueo ? 'Motivo del bloqueo' : 'Nombre del evento'}</span>
+            <input
+              name="eventName"
+              value={createForm.eventName}
+              onChange={handleCreateChange}
+              placeholder={createForm.esBloqueo ? 'Mantención del local' : ''}
+              required
+            />
           </label>
 
           <label className="field">
@@ -148,7 +183,7 @@ export default function AdminDashboardPage() {
           {createError && <p className="form-error">{createError}</p>}
 
           <button className="btn btn--primary" type="submit" disabled={creating}>
-            {creating ? 'Creando…' : 'Crear reserva'}
+            {creating ? 'Guardando…' : createForm.esBloqueo ? 'Bloquear día' : 'Crear reserva'}
           </button>
         </form>
       )}
@@ -179,11 +214,11 @@ export default function AdminDashboardPage() {
             reserva={reserva}
             showUsuario
             footer={
-              reserva.status !== 'CANCELLED' && (
-                <>
-                  <Link to={`/admin/reservas/${reserva.id}/editar`} className="btn btn--ghost btn--small">
-                    Editar
-                  </Link>
+              <>
+                <Link to={`/admin/reservas/${reserva.id}/editar`} className="btn btn--ghost btn--small">
+                  Editar
+                </Link>
+                {reserva.status !== 'CANCELLED' && (
                   <button
                     className="btn btn--danger btn--small"
                     onClick={() => handleCancelar(reserva.id)}
@@ -191,8 +226,15 @@ export default function AdminDashboardPage() {
                   >
                     {cancellingId === reserva.id ? 'Cancelando…' : 'Cancelar'}
                   </button>
-                </>
-              )
+                )}
+                <button
+                  className="btn btn--danger btn--small"
+                  onClick={() => handleEliminarDefinitivo(reserva.id, reserva.tipo)}
+                  disabled={deletingId === reserva.id}
+                >
+                  {deletingId === reserva.id ? 'Eliminando…' : 'Eliminar'}
+                </button>
+              </>
             }
           />
         ))}

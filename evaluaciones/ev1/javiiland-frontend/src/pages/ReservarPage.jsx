@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import CalendarioMensual from '../components/CalendarioMensual'
 import { reservaService } from '../api/reservaService'
 import { extractErrorMessage } from '../api/axiosClient'
-import { useAuth } from '../context/AuthContext'
 
 function formatFechaLarga(iso) {
   if (!iso) return ''
@@ -13,7 +12,6 @@ function formatFechaLarga(iso) {
 }
 
 export default function ReservarPage() {
-  const { usuario } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -36,7 +34,7 @@ export default function ReservarPage() {
 
     setSubmitting(true)
     try {
-      await reservaService.crear(usuario.id, {
+      await reservaService.crear({
         reservationDate: selectedDate,
         eventName,
         description,

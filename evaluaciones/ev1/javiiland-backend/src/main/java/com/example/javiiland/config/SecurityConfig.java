@@ -5,6 +5,7 @@ import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -25,7 +26,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
-    private static final String LOCAL_JWT_SECRET = "javiiland-local-secret-key-2026-32bytes";
+    @Value("${javiiland.security.jwt-secret}")
+    private String jwtSecret;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
@@ -72,7 +74,7 @@ public class SecurityConfig {
     @Bean
     @Profile("local")
     JwtDecoder localJwtDecoder() {
-        SecretKey secretKey = new SecretKeySpec(LOCAL_JWT_SECRET.getBytes(), "HmacSHA256");
+        SecretKey secretKey = new SecretKeySpec(jwtSecret.getBytes(), "HmacSHA256");
         return org.springframework.security.oauth2.jwt.NimbusJwtDecoder.withSecretKey(secretKey)
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();

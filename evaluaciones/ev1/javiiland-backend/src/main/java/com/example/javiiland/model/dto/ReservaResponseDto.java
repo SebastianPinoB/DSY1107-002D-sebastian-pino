@@ -1,6 +1,7 @@
 package com.example.javiiland.model.dto;
 
 import com.example.javiiland.model.ReservaStatus;
+import com.example.javiiland.model.TipoReserva;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,6 +22,7 @@ public class ReservaResponseDto {
     private String nombreEvento;
     private String descripcion;
     private ReservaStatus status;
+    private TipoReserva tipo;
     private Long usuarioId;
     private String nombreUsuario;
     private LocalDateTime creadoEn;

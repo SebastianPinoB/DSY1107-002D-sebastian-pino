@@ -223,6 +223,13 @@ button {
   color: var(--ink);
 }
 
+.badge--bloqueo {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  background: var(--ink-soft);
+  color: var(--paper-raised);
+}
+
 /* ---------- buttons ---------- */
 .btn {
   display: inline-flex;
@@ -533,6 +540,17 @@ button {
   text-transform: capitalize;
 }
 
+.field--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.field--checkbox input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
 .form-error {
   background: color-mix(in srgb, var(--coral) 12%, white);
   border: 1px solid var(--coral);
@@ -632,6 +650,10 @@ button {
 
 .reserva-card--cancelled {
   opacity: 0.6;
+}
+
+.reserva-card--bloqueo {
+  border-style: dashed;
 }
 
 .reserva-card__ticket-notch {

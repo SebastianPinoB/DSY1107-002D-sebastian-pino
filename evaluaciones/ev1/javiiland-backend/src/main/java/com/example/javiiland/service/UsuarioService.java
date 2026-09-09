@@ -11,21 +11,25 @@ import org.springframework.web.server.ResponseStatusException;
 import com.example.javiiland.model.Role;
 import com.example.javiiland.model.Usuario;
 import com.example.javiiland.model.dto.LoginRequestDto;
+import com.example.javiiland.model.dto.LoginResponseDto;
 import com.example.javiiland.model.dto.RegistroUsuarioDto;
 import com.example.javiiland.model.dto.UsuarioResponseDto;
 import com.example.javiiland.repository.UsuarioRepository;
+import com.example.javiiland.security.JwtService;
 
 @Service
 public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
+    private final JwtService jwtService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository, JwtService jwtService) {
         this.usuarioRepository = usuarioRepository;
+        this.jwtService = jwtService;
     }
 
     @Transactional
-    public UsuarioResponseDto registrar(RegistroUsuarioDto request) {
+    public LoginResponseDto registrar(RegistroUsuarioDto request) {
         if (usuarioRepository.existsByUsername(request.getUsername())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El username ya existe");
         }
@@ -40,15 +44,21 @@ public class UsuarioService {
                 .nombre(request.getFullName())
                 .role(Role.USER)
                 .build();
-        return toResponse(usuarioRepository.save(usuario));
+        usuario = usuarioRepository.save(usuario);
+        return toLoginResponse(usuario);
     }
 
     @Transactional(readOnly = true)
-    public UsuarioResponseDto login(LoginRequestDto request) {
+    public LoginResponseDto login(LoginRequestDto request) {
         Usuario usuario = usuarioRepository.findByUsername(request.getUsername())
                 .filter(found -> passwordEncoder.matches(request.getPassword(), found.getPassword()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas"));
-        return toResponse(usuario);
+        return toLoginResponse(usuario);
+    }
+
+    @Transactional(readOnly = true)
+    public UsuarioResponseDto obtenerActual(Long usuarioId) {
+        return buscarPorId(usuarioId);
     }
 
     @Transactional(readOnly = true)
@@ -69,6 +79,13 @@ public class UsuarioService {
                 .email(usuario.getEmail())
                 .fullName(usuario.getNombre())
                 .role(usuario.getRole())
+                .build();
+    }
+
+    private LoginResponseDto toLoginResponse(Usuario usuario) {
+        return LoginResponseDto.builder()
+                .token(jwtService.generarToken(usuario))
+                .usuario(toResponse(usuario))
                 .build();
     }
 }

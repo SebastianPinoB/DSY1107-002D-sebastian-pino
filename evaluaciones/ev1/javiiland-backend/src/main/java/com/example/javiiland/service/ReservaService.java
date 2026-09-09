@@ -10,8 +10,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.example.javiiland.model.Reserva;
 import com.example.javiiland.model.ReservaStatus;
+import com.example.javiiland.model.TipoReserva;
 import com.example.javiiland.model.Usuario;
 import com.example.javiiland.model.dto.CalendarioDto;
+import com.example.javiiland.model.dto.ReservaAdminRequestDto;
 import com.example.javiiland.model.dto.ReservaRequestDto;
 import com.example.javiiland.model.dto.ReservaResponseDto;
 import com.example.javiiland.model.dto.ReservaUpdateDto;
@@ -28,6 +30,10 @@ public class ReservaService {
         this.usuarioRepository = usuarioRepository;
     }
 
+    /**
+     * Autoservicio del cliente: usuarioId siempre viene del JWT (ver
+     * ReservaController#crear), nunca de algo que el propio cliente elija.
+     */
     @Transactional
     public ReservaResponseDto crear(Long usuarioId, ReservaRequestDto request) {
         if (reservaRepository.existsByFechaReservaAndEstatus(request.getReservationDate(), ReservaStatus.CONFIRMED)) {
@@ -40,7 +46,38 @@ public class ReservaService {
                 .nombreEvento(request.getEventName())
                 .descripcion(request.getDescription())
                 .estatus(ReservaStatus.CONFIRMED)
+                .tipo(TipoReserva.CLIENTE)
                 .usuario(usuario)
+                .build();
+        return toResponse(reservaRepository.save(reserva));
+    }
+
+    /**
+     * Solo ADMIN (ver ReservaController#crearComoAdmin). Permite reservar a
+     * nombre de un cliente real (usuarioId presente) o bloquear el día sin
+     * cliente asociado (usuarioId ausente -> queda a nombre del propio admin).
+     */
+    @Transactional
+    public ReservaResponseDto crearComoAdmin(Long adminUsuarioId, ReservaAdminRequestDto request) {
+        if (reservaRepository.existsByFechaReservaAndEstatus(request.getReservationDate(), ReservaStatus.CONFIRMED)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La fecha ya está reservada");
+        }
+
+        Long propietarioId = request.getUsuarioId() != null ? request.getUsuarioId() : adminUsuarioId;
+        Usuario propietario = usuarioRepository.findById(propietarioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        TipoReserva tipo = request.getTipo() != null
+                ? request.getTipo()
+                : (request.getUsuarioId() == null ? TipoReserva.BLOQUEO : TipoReserva.CLIENTE);
+
+        Reserva reserva = Reserva.builder()
+                .fechaReserva(request.getReservationDate())
+                .nombreEvento(request.getEventName())
+                .descripcion(request.getDescription())
+                .estatus(ReservaStatus.CONFIRMED)
+                .tipo(tipo)
+                .usuario(propietario)
                 .build();
         return toResponse(reservaRepository.save(reserva));
     }
@@ -81,6 +118,18 @@ public class ReservaService {
         return toResponse(reservaRepository.save(reserva));
     }
 
+    /**
+     * Borrado real (no soft-cancel). Solo ADMIN. Pensado para limpiar
+     * bloqueos ya vencidos o reservas creadas por error, no para el flujo
+     * normal de cancelación de un cliente (eso libera la fecha con
+     * ReservaStatus.CANCELLED y mantiene el historial).
+     */
+    @Transactional
+    public void eliminarDefinitivo(Long id) {
+        Reserva reserva = obtener(id);
+        reservaRepository.delete(reserva);
+    }
+
     @Transactional(readOnly = true)
     public List<CalendarioDto> calendario(LocalDate inicio, LocalDate fin) {
         List<Reserva> reservas = reservaRepository.findByFechaReservaBetweenAndEstatus(
@@ -105,6 +154,7 @@ public class ReservaService {
                 .nombreEvento(reserva.getNombreEvento())
                 .descripcion(reserva.getDescripcion())
                 .status(reserva.getEstatus())
+                .tipo(reserva.getTipo())
                 .usuarioId(reserva.getUsuario().getId())
                 .nombreUsuario(reserva.getUsuario().getNombre())
                 .creadoEn(reserva.getCreadaEn())

@@ -7,9 +7,10 @@ function formatFecha(iso) {
 
 export default function ReservaCard({ reserva, footer, showUsuario = false }) {
   const isCancelled = reserva.status === 'CANCELLED'
+  const esBloqueo = reserva.tipo === 'BLOQUEO'
 
   return (
-    <article className={`reserva-card ${isCancelled ? 'reserva-card--cancelled' : ''}`}>
+    <article className={`reserva-card ${isCancelled ? 'reserva-card--cancelled' : ''} ${esBloqueo ? 'reserva-card--bloqueo' : ''}`}>
       <div className="reserva-card__ticket-notch" aria-hidden="true" />
       <div className="reserva-card__body">
         <div className="reserva-card__top">
@@ -18,9 +19,10 @@ export default function ReservaCard({ reserva, footer, showUsuario = false }) {
             {isCancelled ? 'Cancelada' : 'Confirmada'}
           </span>
         </div>
+        {esBloqueo && <span className="badge badge--bloqueo">Bloqueo interno</span>}
         <h3 className="reserva-card__event">{reserva.nombreEvento}</h3>
         {reserva.descripcion && <p className="reserva-card__description">{reserva.descripcion}</p>}
-        {showUsuario && (
+        {showUsuario && !esBloqueo && (
           <p className="reserva-card__owner">
             Reservado por <strong>{reserva.nombreUsuario}</strong>
           </p>

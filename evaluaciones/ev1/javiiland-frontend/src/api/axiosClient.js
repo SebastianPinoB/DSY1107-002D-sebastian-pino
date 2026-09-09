@@ -1,6 +1,7 @@
 import axios from 'axios'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+export const TOKEN_STORAGE_KEY = 'javiiland_token'
 
 export const axiosClient = axios.create({
   baseURL,
@@ -9,16 +10,25 @@ export const axiosClient = axios.create({
   },
 })
 
-/**
- * El backend aún no implementa Spring Security / JWT (ver README).
- * Cuando exista un token, se puede inyectar aquí, por ejemplo:
- *
- * axiosClient.interceptors.request.use((config) => {
- *   const token = localStorage.getItem('javiiland_token')
- *   if (token) config.headers.Authorization = `Bearer ${token}`
- *   return config
- * })
- */
+// Inyecta el JWT emitido por /api/usuarios/login o /registro en cada request.
+axiosClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+// Si el token expiró o es inválido, el backend responde 401: limpiamos la
+// sesión local para que la UI vuelva a pedir login (evita quedar "logueado"
+// en la UI con un token muerto).
+axiosClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      localStorage.removeItem(TOKEN_STORAGE_KEY)
+    }
+    return Promise.reject(error)
+  }
+)
 
 /**
  * Traduce errores de axios/Spring a un mensaje legible para el usuario.

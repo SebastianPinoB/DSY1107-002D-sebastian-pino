@@ -53,6 +53,15 @@ public class Reserva {
     @Column(nullable = false)
     @Builder.Default
     private ReservaStatus estatus = ReservaStatus.CONFIRMED;
+
+    /**
+     * CLIENTE (default) para reservas normales, BLOQUEO cuando el admin
+     * ocupa el día sin un cliente real detrás (ver TipoReserva).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private TipoReserva tipo = TipoReserva.CLIENTE;
  
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)

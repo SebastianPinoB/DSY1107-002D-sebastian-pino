@@ -1,37 +1,49 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { TOKEN_STORAGE_KEY } from '../api/axiosClient'
 import { usuarioService } from '../api/usuarioService'
-
-const STORAGE_KEY = 'javiiland_user'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [usuario, setUsuario] = useState(() => {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : null
-  })
+  const [usuario, setUsuario] = useState(null)
+  // Mientras se valida un token existente contra el backend al montar la app.
+  const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
-    if (usuario) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(usuario))
-    } else {
-      localStorage.removeItem(STORAGE_KEY)
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+    if (!token) {
+      setCargando(false)
+      return
     }
-  }, [usuario])
+
+    // El usuario NUNCA se lee de localStorage: solo se persiste el token,
+    // y el usuario siempre se pide fresco al backend (/api/usuarios/me).
+    usuarioService
+      .me()
+      .then(setUsuario)
+      .catch(() => {
+        localStorage.removeItem(TOKEN_STORAGE_KEY)
+        setUsuario(null)
+      })
+      .finally(() => setCargando(false))
+  }, [])
 
   async function login(loginRequestDto) {
-    const usuarioResponse = await usuarioService.login(loginRequestDto)
+    const { token, usuario: usuarioResponse } = await usuarioService.login(loginRequestDto)
+    localStorage.setItem(TOKEN_STORAGE_KEY, token)
     setUsuario(usuarioResponse)
     return usuarioResponse
   }
 
   async function registrar(registroUsuarioDto) {
-    const usuarioResponse = await usuarioService.registrar(registroUsuarioDto)
+    const { token, usuario: usuarioResponse } = await usuarioService.registrar(registroUsuarioDto)
+    localStorage.setItem(TOKEN_STORAGE_KEY, token)
     setUsuario(usuarioResponse)
     return usuarioResponse
   }
 
   function logout() {
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
     setUsuario(null)
   }
 
@@ -40,11 +52,12 @@ export function AuthProvider({ children }) {
       usuario,
       isAuthenticated: Boolean(usuario),
       isAdmin: usuario?.role === 'ADMIN',
+      cargando,
       login,
       registrar,
       logout,
     }),
-    [usuario]
+    [usuario, cargando]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
