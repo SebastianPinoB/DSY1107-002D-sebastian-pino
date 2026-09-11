@@ -161,10 +161,20 @@ sequenceDiagram
 ## Preguntas
 
 - ¿Por qué `Client ID` no es una contraseña?
+Porque el _Client ID_ es un identificador publico que cualquiera puede verlo inspeccionando el trafico de red, asi que no puede ser un secreto. El _Client Id_ sirve para que el _IdP_ sepa "¿qué aplicación me está hablando?", no para probar que esa aplicación es de confianza
+
 - ¿Por qué la redirect URI debe estar registrada?
+Al registrar de antemano la URL exacta permitida, el _IdP_ se niega a redirigir el código a cualquier otro destino. Si cualquier URL fuera aceptada, un atacante podría manipular la solicitud de login para que el código termine llegando a un sitio bajo su control en vez de al Client legítimo
+
 - ¿Qué intenta proteger PKCE?
+Protege el canje del _Authorization code_, evitando que alguien intercepte el codigo y pueda usarlo para obtener tokens.
+
 - ¿Por qué una SPA se considera cliente público?
+SPA = Single Page Application.
+Porque cualquier cosa que este en el codigo JavaScript que se ejecuta en el navegador es inspeccionable, entonces cualquiera con devtools podria mirar el codigo fuente de la aplicacion
+
 - ¿Por qué no colocaríamos un client secret en JavaScript frontend?
+Porque si se pone en el JavaScript que corre en el navegador del usuario, cualquiera con las devtools puede leerlo directamente del codigo, entonces dejaria de ser secreto y cualquiera podria tener acceso a él. _"Sería como escribir la clave de la caja fuerte en un papel pegado en la puerta de la caja fuerte."_ Por eso las SPAs usan PKCE en vez de un client secret: PKCE logra protección sin depender de que algo permanezca oculto en el navegador.
 
 ---
 
@@ -175,12 +185,12 @@ Después del login observen ambos tokens decodificados.
 Identifiquen en el **Access Token didáctico**:
 
 ```text
-sub
-iss
-aud
-scope
-role
-exp
+sub: user-1000
+iss: https://identity.reservapp.local
+aud: reservapp-api
+scope: reservations.read
+role: customer
+exp: 1788215366
 ```
 
 Luego pulsen:
@@ -195,10 +205,10 @@ GET /api/reservations
 
 Registren:
 
-- status HTTP;
-- componente que rechaza la petición;
-- motivo;
-- diferencia de propósito entre ambos tokens.
+- status HTTP: 401;
+- componente que rechaza la petición: Gateway;
+- motivo: el Gateway espera recibir un token de tipo _Access Token_, y detectó que el que fue enviado es de tipo _ID Token_. Estos no tienen la misma estructura;
+- diferencia de propósito entre ambos tokens: El _Id Token_ informa al Client (la app) quién se autenticó. El _Access Token_, en cambio, es una credencial que se presenta ante el recurso protegido (la API) para demostrar que tienes permiso de realizar cierta acción; 
 
 Deben poder explicar:
 
