@@ -9,10 +9,12 @@ import MisReservasPage from './pages/MisReservasPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import EditarReservaPage from './pages/EditarReservaPage'
 import NotFoundPage from './pages/NotFoundPage'
+import TestPage from './pages/TestPage'
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/test" element={<TestPage />} />
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/ingresar" element={<LoginPage />} />
