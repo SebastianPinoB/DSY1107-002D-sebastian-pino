@@ -15,7 +15,7 @@ export default function TestPage() {
   // 1. Iniciar sesión con Microsoft Entra ID
   const handleMicrosoftLogin = async () => {
     try {
-      await instance.loginPopup(loginRequest);
+      await instance.loginRedirect(loginRequest);
     } catch (err) {
       console.error('Error al iniciar sesión con Microsoft:', err);
     }
@@ -31,7 +31,6 @@ export default function TestPage() {
     setLoading(true);
     setError(null);
     try {
-      // Obtener el token silenciosamente para la API
       const response = await instance.acquireTokenSilent({
         ...loginRequest,
         account: activeAccount,
@@ -40,8 +39,7 @@ export default function TestPage() {
       const token = response.accessToken;
       console.log('Access Token obtenido:', token);
 
-      // Llamada a la API
-      const data = await apiGet('/api/demo', token);
+      const data = await apiGet('/api/usuarios', token);
       setApiResult(data);
     } catch (err) {
       console.error('Error en prueba API:', err);
