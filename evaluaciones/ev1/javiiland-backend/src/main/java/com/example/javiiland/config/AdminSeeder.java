@@ -50,7 +50,7 @@ public class AdminSeeder implements ApplicationRunner {
                 .role(Role.ADMIN)
                 .build();
         usuarioRepository.save(admin);
-        log.warn("usuario ADMIN por defecto: admin admin123 ",
+        log.warn("usuario ADMIN por defecto creado",
                 adminUsername);
     }
 }
