@@ -24,6 +24,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 @Configuration
 @EnableMethodSecurity
@@ -55,12 +56,23 @@ public class SecurityConfig {
 
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        authoritiesConverter.setAuthoritiesClaimName("roles");
-        authoritiesConverter.setAuthorityPrefix("ROLE_");
-
+        JwtGrantedAuthoritiesConverter localAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        localAuthoritiesConverter.setAuthoritiesClaimName("roles");
+        localAuthoritiesConverter.setAuthorityPrefix("ROLE_");
+    
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            String issuer = jwt.getIssuer() != null ? jwt.getIssuer().toString() : "";
+    
+            // Cualquier token válido emitido por Azure AD es de staff interno
+            // (nadie más tiene cuenta en ese tenant) -> se trata como ADMIN.
+            if (issuer.contains("login.microsoftonline.com") || issuer.contains("sts.windows.net")) {
+                return List.of(new SimpleGrantedAuthority("ROLE_ADMIN"));
+            }
+    
+            // Token local (HMAC): sigue leyendo el claim "roles" como antes.
+            return localAuthoritiesConverter.convert(jwt);
+        });
         return converter;
     }
 

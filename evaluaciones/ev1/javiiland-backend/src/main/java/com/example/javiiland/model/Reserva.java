@@ -64,7 +64,7 @@ public class Reserva {
     private TipoReserva tipo = TipoReserva.CLIENTE;
  
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @JoinColumn(name = "usuario_id", nullable = true)
     private Usuario usuario;
  
     @Column(name = "creada_en", updatable = false)

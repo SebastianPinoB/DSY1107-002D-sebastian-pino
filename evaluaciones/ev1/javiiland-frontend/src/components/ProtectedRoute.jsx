@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
+import { useIsAuthenticated as useMsalAuthenticated } from '@azure/msal-react';
 import { useAuth } from '../context/AuthContext'; // Asegúrate de que esta ruta apunte a tu AuthContext
 
 export default function ProtectedRoute({
@@ -6,17 +7,19 @@ export default function ProtectedRoute({
   requireAdmin = false,
   inlineAuthNotice = false,
 }) {
-  const { isAuthenticated, isAdmin, cargando, login } = useAuth();
+  const { isAuthenticated, isAdmin: isAdminLocal, cargando, login } = useAuth();
+  const isMsalAuthenticated = useMsalAuthenticated();
   const location = useLocation();
 
-  // 1. Espera a que termine la validación del token
+  // Staff/admin puede entrar por Azure AD sin pasar por el AuthContext local.
+  const isAdmin = isAdminLocal || isMsalAuthenticated;
+  const isAnyAuthenticated = isAuthenticated || isMsalAuthenticated;
+
   if (cargando) {
     return null;
   }
 
-  // 2. Si no está autenticado
-  if (!isAuthenticated) {
-    // Si prefieres mostrar el mensaje con botón en lugar de redirigir
+  if (!isAnyAuthenticated) {
     if (inlineAuthNotice) {
       return (
         <section>
@@ -27,16 +30,12 @@ export default function ProtectedRoute({
         </section>
       );
     }
-
-    // Por defecto: Redirige a /ingresar guardando la ruta previa
     return <Navigate to="/ingresar" state={{ from: location }} replace />;
   }
 
-  // 3. Si requiere rol de administrador y no lo es
   if (requireAdmin && !isAdmin) {
     return <Navigate to="/" replace />;
   }
 
-  // 4. Si todo está correcto, muestra el contenido
   return children;
 }

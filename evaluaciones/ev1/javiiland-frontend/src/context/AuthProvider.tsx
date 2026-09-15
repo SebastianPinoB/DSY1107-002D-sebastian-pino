@@ -1,24 +1,52 @@
 // @ts-nocheck
-import { useEffect, useState } from 'react';
-import { PublicClientApplication } from '@azure/msal-browser';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { PublicClientApplication, EventType } from '@azure/msal-browser';
 import { MsalProvider } from '@azure/msal-react';
 import { msalConfig } from './msalConfig';
 
-const msalInstance = new PublicClientApplication(msalConfig);
+export const msalInstance = new PublicClientApplication(msalConfig);
+
+msalInstance.addEventCallback((event) => {
+  if (
+    (event.eventType === EventType.LOGIN_SUCCESS ||
+      event.eventType === EventType.ACQUIRE_TOKEN_SUCCESS) &&
+    event.payload?.account
+  ) {
+    msalInstance.setActiveAccount(event.payload.account);
+  }
+});
 
 export function MsalAuthProvider({ children }) {
   const [isInitialized, setIsInitialized] = useState(false);
+  const navigate = useNavigate();
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    // Inicializar MSAL explícitamente
-    msalInstance.initialize().then(() => {
-      setIsInitialized(true);
-    }).catch(console.error);
+    if (hasRun.current) return;
+    hasRun.current = true;
+
+    msalInstance
+      .initialize()
+      .then(() => msalInstance.handleRedirectPromise())
+      .then((response) => {
+        if (response?.account) {
+          msalInstance.setActiveAccount(response.account);
+          navigate('/', { replace: true });
+        } else {
+          const accounts = msalInstance.getAllAccounts();
+          if (accounts.length > 0) {
+            msalInstance.setActiveAccount(accounts[0]);
+          }
+        }
+        setIsInitialized(true);
+      })
+      .catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Esperar a que MSAL termine de inicializarse para evitar el error de "stubbed"
   if (!isInitialized) {
-    return null; // O un spinner / loader si prefieres
+    return null;
   }
 
   return <MsalProvider instance={msalInstance}>{children}</MsalProvider>;

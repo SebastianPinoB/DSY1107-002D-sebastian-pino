@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { extractErrorMessage } from '../api/axiosClient'
+import { useAuth as useMsalAuth } from '../context/useAuth'
 
 export default function LoginPage() {
   const { login } = useAuth()
+  const { login: loginStaff } = useMsalAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -74,6 +76,23 @@ export default function LoginPage() {
         <p className="auth-card__footer">
           ¿No tienes cuenta? <Link to="/registro">Regístrate aquí</Link>
         </p>
+        <p className="auth-card__staff-link">
+        <button
+          type="button"
+          onClick={() => loginStaff()}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#999',
+            fontSize: '0.70rem',
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            padding: 0,
+          }}
+        >
+          Acceso
+        </button>
+      </p>
       </div>
     </div>
   )

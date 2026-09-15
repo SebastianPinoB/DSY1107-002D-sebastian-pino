@@ -1,4 +1,6 @@
 import axios from 'axios'
+import { msalInstance } from '../context/AuthProvider'
+import { apiScopes } from '../context/msalConfig'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 export const TOKEN_STORAGE_KEY = 'javiiland_token'
@@ -10,10 +12,30 @@ export const axiosClient = axios.create({
   },
 })
 
-// Inyecta el JWT emitido por /api/usuarios/login o /registro en cada request.
-axiosClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_STORAGE_KEY)
-  if (token) config.headers.Authorization = `Bearer ${token}`
+
+//Pide token de azure si no hay JWT local
+axiosClient.interceptors.request.use(async (config) => {
+  const localToken = localStorage.getItem(TOKEN_STORAGE_KEY)
+  if (localToken) {
+    config.headers.Authorization = `Bearer ${localToken}`
+    return config
+  }
+
+  // No hay sesión local (usuario público): si hay una cuenta de Azure AD
+  // activa (staff/admin), usamos su token en vez del JWT propio.
+  const account = msalInstance.getActiveAccount() || msalInstance.getAllAccounts()[0]
+  if (account) {
+    try {
+      const result = await msalInstance.acquireTokenSilent({
+        account,
+        scopes: apiScopes,
+      })
+      config.headers.Authorization = `Bearer ${result.accessToken}`
+    } catch (err) {
+      console.error('No se pudo obtener token de Azure AD:', err)
+    }
+  }
+
   return config
 })
 

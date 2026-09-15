@@ -56,8 +56,7 @@ public class ReservaController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReservaResponseDto> crearComoAdmin(@AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody ReservaAdminRequestDto request) {
-        Long adminId = jwt.getClaim("userId");
-        return ResponseEntity.status(HttpStatus.CREATED).body(reservaService.crearComoAdmin(adminId, request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(reservaService.crearComoAdmin(null, request));
     }
 
     /** Listado completo: solo tiene sentido en el panel de admin. */

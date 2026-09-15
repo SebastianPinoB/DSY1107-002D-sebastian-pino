@@ -63,13 +63,19 @@ public class ReservaService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La fecha ya está reservada");
         }
 
-        Long propietarioId = request.getUsuarioId() != null ? request.getUsuarioId() : adminUsuarioId;
-        Usuario propietario = usuarioRepository.findById(propietarioId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        // Si viene un cliente real, se le asocia la reserva. Si no viene, es un
+        // bloqueo puro (mantención, uso personal, etc.) y NO se le asigna ningún
+        // usuario -- ni el del cliente ni el del propio admin -- porque el admin
+        // puede haber entrado vía Azure AD y no tener fila en la tabla usuarios.
+        Usuario propietario = null;
+        if (request.getUsuarioId() != null) {
+            propietario = usuarioRepository.findById(request.getUsuarioId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        }
 
         TipoReserva tipo = request.getTipo() != null
                 ? request.getTipo()
-                : (request.getUsuarioId() == null ? TipoReserva.BLOQUEO : TipoReserva.CLIENTE);
+                : (propietario == null ? TipoReserva.BLOQUEO : TipoReserva.CLIENTE);
 
         Reserva reserva = Reserva.builder()
                 .fechaReserva(request.getReservationDate())
@@ -148,6 +154,7 @@ public class ReservaService {
     }
 
     private ReservaResponseDto toResponse(Reserva reserva) {
+        Usuario usuario = reserva.getUsuario();
         return ReservaResponseDto.builder()
                 .id(reserva.getId())
                 .fechaReserva(reserva.getFechaReserva())
@@ -155,8 +162,8 @@ public class ReservaService {
                 .descripcion(reserva.getDescripcion())
                 .status(reserva.getEstatus())
                 .tipo(reserva.getTipo())
-                .usuarioId(reserva.getUsuario().getId())
-                .nombreUsuario(reserva.getUsuario().getNombre())
+                .usuarioId(usuario != null ? usuario.getId() : null)
+                .nombreUsuario(usuario != null ? usuario.getNombre() : "Bloqueo (sin cliente)")
                 .creadoEn(reserva.getCreadaEn())
                 .actualizadoEn(reserva.getActualizadaEn())
                 .build();

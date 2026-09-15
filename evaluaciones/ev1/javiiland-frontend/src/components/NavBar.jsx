@@ -1,11 +1,24 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useIsAuthenticated as useMsalAuthenticated, useMsal } from '@azure/msal-react'
 import { useAuth } from '../context/AuthContext'
 
 export default function NavBar() {
-  const { usuario, isAuthenticated, isAdmin, logout } = useAuth()
+  const { usuario, isAuthenticated: isAuthLocal, isAdmin: isAdminLocal, logout } = useAuth()
+  const { instance, accounts } = useMsal()
+  const isMsalAuthenticated = useMsalAuthenticated()
   const navigate = useNavigate()
 
+  const isAuthenticated = isAuthLocal || isMsalAuthenticated
+  const isAdmin = isAdminLocal || isMsalAuthenticated
+  const displayName = isMsalAuthenticated
+    ? accounts[0]?.name || accounts[0]?.username
+    : usuario?.fullName || usuario?.username
+
   function handleLogout() {
+    if (isMsalAuthenticated) {
+      instance.logoutRedirect()
+      return
+    }
     logout()
     navigate('/')
   }
@@ -28,12 +41,12 @@ export default function NavBar() {
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'nav__link nav__link--active' : 'nav__link')}>
             Calendario
           </NavLink>
-          {isAuthenticated && (
+          {isAuthLocal && (
             <NavLink to="/reservar" className={({ isActive }) => (isActive ? 'nav__link nav__link--active' : 'nav__link')}>
               Reservar
             </NavLink>
           )}
-          {isAuthenticated && (
+          {isAuthLocal && (
             <NavLink to="/mis-reservas" className={({ isActive }) => (isActive ? 'nav__link nav__link--active' : 'nav__link')}>
               Mis reservas
             </NavLink>
@@ -49,7 +62,7 @@ export default function NavBar() {
           {isAuthenticated ? (
             <>
               <span className="nav__user">
-                {usuario.fullName || usuario.username}
+                {displayName}
                 {isAdmin && <span className="badge badge--admin">admin</span>}
               </span>
               <button className="btn btn--ghost" onClick={handleLogout}>

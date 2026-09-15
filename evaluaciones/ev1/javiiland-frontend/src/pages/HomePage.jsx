@@ -1,17 +1,23 @@
 import { useNavigate } from 'react-router-dom'
 import CalendarioMensual from '../components/CalendarioMensual'
+import { useIsAuthenticated as useMsalAuthenticated } from '@azure/msal-react'
 import { useAuth } from '../context/AuthContext'
 
 export default function HomePage() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated: isAuthLocal } = useAuth()
+  const isMsalAuthenticated = useMsalAuthenticated()
   const navigate = useNavigate()
 
   function handleSelectDay(iso) {
-    if (isAuthenticated) {
-      navigate(`/reservar?fecha=${iso}`)
-    } else {
-      navigate('/ingresar', { state: { message: 'Ingresa a tu cuenta para reservar una fecha.' } })
+    if (isMsalAuthenticated) {
+      navigate('/admin')
+      return
     }
+    if (isAuthLocal) {
+        navigate(`/reservar?fecha=${iso}`)
+      } else {
+        navigate('/ingresar', { state: { message: 'Ingresa a tu cuenta para reservar una fecha.' } })
+      }
   }
 
   return (
@@ -28,7 +34,7 @@ export default function HomePage() {
             la posada o el evento escolar que estás organizando. El calendario es público: cualquiera
             puede ver la disponibilidad, pero solo las cuentas registradas pueden apartar un día.
           </p>
-          {!isAuthenticated && (
+          {!isAuthLocal && !isMsalAuthenticated && (
             <div className="hero__cta">
               <button className="btn btn--primary" onClick={() => navigate('/registro')}>
                 Crear cuenta
