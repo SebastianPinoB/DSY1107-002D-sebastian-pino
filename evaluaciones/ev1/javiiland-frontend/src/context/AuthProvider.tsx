@@ -22,29 +22,41 @@ export function MsalAuthProvider({ children }) {
   const navigate = useNavigate();
   const hasRun = useRef(false);
 
-  useEffect(() => {
+useEffect(() => {
     if (hasRun.current) return;
     hasRun.current = true;
 
     msalInstance
       .initialize()
-      .then(() => msalInstance.handleRedirectPromise())
-      .then((response) => {
-        if (response?.account) {
-          msalInstance.setActiveAccount(response.account);
-          navigate('/', { replace: true });
-        } else {
-          const accounts = msalInstance.getAllAccounts();
-          if (accounts.length > 0) {
-            msalInstance.setActiveAccount(accounts[0]);
+      .then(async () => {
+        try {
+          // Si falla por problemas de caché de redirección, lo atrapamos aquí para no congelar la app
+          const response = await msalInstance.handleRedirectPromise();
+          if (response?.account) {
+            msalInstance.setActiveAccount(response.account);
+            navigate('/', { replace: true });
+            return;
           }
+        } catch (redirectError) {
+          console.warn('Advertencia en handleRedirectPromise ignorada:', redirectError);
         }
-        setIsInitialized(true);
+
+        // Revisar cuentas existentes en caché
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) {
+          msalInstance.setActiveAccount(accounts[0]);
+        }
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error('Error crítico al inicializar MSAL:', err);
+      })
+      .finally(() => {
+        // Esto garantiza que la pantalla NUNCA se quede en blanco, pase lo que pase
+        setIsInitialized(true);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
+  
   if (!isInitialized) {
     return null;
   }
