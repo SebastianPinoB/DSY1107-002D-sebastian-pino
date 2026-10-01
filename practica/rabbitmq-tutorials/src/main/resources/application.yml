@@ -1,0 +1,21 @@
+rabbitmq:
+  host: localhost
+  port: 5672
+  username: guest
+  password: guest
+  listener:
+    simple:
+      # Modo manual: El consumidor decide cuándo hacer Ack
+      acknowledge-mode: manual
+      # Prefetch: Procesa 1 mensaje a la vez (Fair Dispatch)
+      prefetch: 1
+      # Reintentos con Exponential Backoff
+      retry:
+        enabled: true
+        initial-interval: 1000 # 1 segundo
+        max-interval: 10000    # 10 segundos máximo
+        multiplier: 2.0        # Duplica cada intento
+        max-attempts: 3        # 3 intentos totales
+
+server:
+  port: 8080
