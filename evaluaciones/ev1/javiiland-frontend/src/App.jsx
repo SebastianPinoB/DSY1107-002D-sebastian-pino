@@ -10,6 +10,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage'
 import EditarReservaPage from './pages/EditarReservaPage'
 import NotFoundPage from './pages/NotFoundPage'
 import TestPage from './pages/TestPage'
+import ConfirmarAsistencia from './components/ConfirmarAsistencia'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/ingresar" element={<LoginPage />} />
         <Route path="/registro" element={<RegistroPage />} />
+        <Route path="/confirmar-asistencia" element={<ConfirmarAsistencia />} />
 
         <Route
           path="/reservar"

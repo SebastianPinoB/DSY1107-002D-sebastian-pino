@@ -29,7 +29,9 @@ export const reservaService = {
   // Soft-delete: libera la fecha pero conserva el historial.
   cancelar: (id) => axiosClient.delete(`/api/reservas/${id}`).then((res) => res.data),
 
+  confirmarAsistencia: (token) =>
+    axiosClient.post('/api/reservas/confirmar-asistencia', null, { params: { token } }).then((res) => res.data),
+
   // Solo ADMIN: borrado real, para limpiar bloqueos vencidos o errores.
   eliminarDefinitivo: (id) => axiosClient.delete(`/api/reservas/${id}/definitivo`),
 }
-

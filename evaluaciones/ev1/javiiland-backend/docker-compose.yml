@@ -24,15 +24,47 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: reservas
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mailpit:
     image: axllent/mailpit
     ports:
       - "1025:1025"   # SMTP
-      - "8025:8025"   # bandeja web
+      - "8025:8025"   # Web
+      
+  backend:
+    build:
+      # Ajusta el context a la ruta donde está la carpeta de tu backend
+      context: . # O '.' si el compose está dentro de la misma carpeta del backend
+      dockerfile: Dockerfile
+    container_name: backend-reservas
+    ports:
+      - "8080:8080"
+    environment:
+      # Conexión a MySQL usando el nombre del servicio en Docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/reservas?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      # Conexión a RabbitMQ usando el nombre del servicio en Docker
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      # Conexión a Mailpit
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: 1025
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   rabbitmq_data:
