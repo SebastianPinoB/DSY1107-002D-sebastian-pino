@@ -3,7 +3,6 @@ package com.example.javiiland.model.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -11,8 +10,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-
 public class RegistroUsuarioDto {
  
     @NotBlank(message = "El username es obligatorio")
@@ -28,4 +25,11 @@ public class RegistroUsuarioDto {
     private String email;
  
     private String fullName;
+
+    public RegistroUsuarioDto(String username, String password, String email, String fullName) {
+        this.username = username;
+        this.password = password;
+        this.email = email;
+        this.fullName = fullName;
+    }
 }

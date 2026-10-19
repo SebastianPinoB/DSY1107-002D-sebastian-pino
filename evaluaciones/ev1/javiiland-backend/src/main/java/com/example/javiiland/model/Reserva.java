@@ -72,6 +72,21 @@ public class Reserva {
  
     @Column(name = "actualizada_en")
     private LocalDateTime actualizadaEn;
+
+    @Column(name = "email_enviado", nullable = false)
+    @Builder.Default
+    private boolean emailEnviado = false;
+
+    @Column(name = "recordatorio_enviado", nullable = false)
+    @Builder.Default
+    private boolean recordatorioEnviado = false;
+
+    @Column(name = "asistencia_confirmada", nullable = false)
+    @Builder.Default
+    private boolean asistenciaConfirmada = false;
+
+    @Column(name = "token_confirmacion", unique = true, length = 100)
+    private String tokenConfirmacion;
  
     @PrePersist
     protected void onCreate() {

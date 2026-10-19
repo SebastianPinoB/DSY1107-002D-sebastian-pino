@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/usuarios/registro", "/api/usuarios/login",
                                 "/api/reservas/calendario").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/reservas/confirmar-asistencia").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));

@@ -3,11 +3,13 @@ package com.example.javiiland.service;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.example.javiiland.messaging.ReservaCreadaEvent;
 import com.example.javiiland.model.Reserva;
 import com.example.javiiland.model.ReservaStatus;
 import com.example.javiiland.model.TipoReserva;
@@ -24,10 +26,14 @@ import com.example.javiiland.repository.UsuarioRepository;
 public class ReservaService {
     private final ReservaRepository reservaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ApplicationEventPublisher eventPublisher;            // NUEVO
 
-    public ReservaService(ReservaRepository reservaRepository, UsuarioRepository usuarioRepository) {
+    public ReservaService(ReservaRepository reservaRepository,
+                          UsuarioRepository usuarioRepository,
+                          ApplicationEventPublisher eventPublisher) {  // NUEVO
         this.reservaRepository = reservaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -49,7 +55,9 @@ public class ReservaService {
                 .tipo(TipoReserva.CLIENTE)
                 .usuario(usuario)
                 .build();
-        return toResponse(reservaRepository.save(reserva));
+        Reserva guardada = reservaRepository.save(reserva);
+        publicarCreada(guardada);                                      // NUEVO
+        return toResponse(guardada);
     }
 
     /**
@@ -85,7 +93,18 @@ public class ReservaService {
                 .tipo(tipo)
                 .usuario(propietario)
                 .build();
-        return toResponse(reservaRepository.save(reserva));
+        Reserva guardada = reservaRepository.save(reserva);
+        publicarCreada(guardada);                                      // NUEVO (el publisher ignora los BLOQUEO)
+        return toResponse(guardada);
+    }
+
+    /**
+     * NUEVO. Reconfirmación de asistencia desde el enlace del correo.
+     * Devuelve false si el token no existe, ya se usó, o la reserva ya no está vigente.
+     */
+    @Transactional
+    public boolean confirmarAsistencia(String token) {
+        return reservaRepository.confirmarAsistencia(token) > 0;
     }
 
     @Transactional(readOnly = true)
@@ -151,6 +170,11 @@ public class ReservaService {
     private Reserva obtener(Long id) {
         return reservaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva no encontrada"));
+    }
+
+    // NUEVO. Se publica dentro de la transacción; ReservaPublisher lo envía a RabbitMQ solo tras el COMMIT.
+    private void publicarCreada(Reserva r) {
+        eventPublisher.publishEvent(new ReservaCreadaEvent(r.getId(), r.getFechaReserva(), r.getTipo()));
     }
 
     private ReservaResponseDto toResponse(Reserva reserva) {
