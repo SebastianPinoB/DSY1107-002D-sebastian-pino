@@ -1,0 +1,63 @@
+### Variables: pega un token de ADMIN (el de Azure AD o el de /api/usuarios/login con el admin)
+@host = http://localhost:8080
+@token = PEGA_AQUI_TU_JWT
+
+### 1. Crear cola (válido) -> 201
+POST {{host}}/api/admin/rabbit/queues
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "q.prueba", "durable": true, "ttlMs": 60000 }
+
+### 2. Crear cola con nombre vacío -> 400 (validación)
+POST {{host}}/api/admin/rabbit/queues
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "" }
+
+### 3. Crear exchange direct -> 201
+POST {{host}}/api/admin/rabbit/exchanges
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "ex.prueba", "type": "direct" }
+
+### 4. Crear exchange con tipo inválido -> 400
+POST {{host}}/api/admin/rabbit/exchanges
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "ex.malo", "type": "inventado" }
+
+### 5. Crear binding -> 201
+POST {{host}}/api/admin/rabbit/bindings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "exchange": "ex.prueba", "destination": "q.prueba", "destinationType": "queue", "routingKey": "prueba" }
+
+### 6. Eliminar binding -> 200
+DELETE {{host}}/api/admin/rabbit/bindings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "exchange": "ex.prueba", "destination": "q.prueba", "destinationType": "queue", "routingKey": "prueba" }
+
+### 7. Eliminar exchange -> 200
+DELETE {{host}}/api/admin/rabbit/exchanges/ex.prueba
+Authorization: Bearer {{token}}
+
+### 8. Eliminar cola -> 200
+DELETE {{host}}/api/admin/rabbit/queues/q.prueba
+Authorization: Bearer {{token}}
+
+### 9. Intentar borrar una cola del sistema -> 409
+DELETE {{host}}/api/admin/rabbit/queues/q.reserva.creada
+Authorization: Bearer {{token}}
+
+### 10. Sin token -> 401
+POST {{host}}/api/admin/rabbit/queues
+Content-Type: application/json
+
+{ "name": "q.sin.token" }

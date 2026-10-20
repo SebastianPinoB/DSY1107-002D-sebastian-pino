@@ -395,29 +395,3 @@ Restaura el cálculo original de `cuando` en `ReservaPublisher` (3 días antes, 
 | Los mensajes llegan a la DLQ al instante | `simular-fallos` está en `true` o el servidor SMTP no está accesible |
 
 ---
-
-## 12. Lo que falta
-
-Funcionalidad pendiente, de mayor a menor importancia:
-
-1. **Página del frontend `/confirmar-asistencia`.** Debe leer `?token=` de la URL, hacer `POST /api/reservas/confirmar-asistencia?token=...` y mostrar el resultado. Sin ella, el enlace del correo no funciona para el usuario final.
-2. **Reintentos largos para la DLQ.** Hoy los reintentos duran solo ~3 segundos. Si el proveedor de correo cae por horas, los mensajes terminan en la DLQ y alguien debe pulsar "Reprocesar". Para que se reintenten solos en segundo plano, como pide el caso 1, hay que agregar una cola de espera (por ejemplo, 5 minutos con TTL) que devuelva el mensaje a su cola principal, o un `@Scheduled` que reprocese la DLQ automáticamente con un límite de intentos.
-3. **Proveedor real de correo** (Resend o SendGrid) en lugar de Mailpit: configurar credenciales por variables de entorno y, si es necesario, reemplazar `JavaMailSender` por el SDK o la API del proveedor.
-4. **Segundo canal de alertas.** `enviarAlertaAdmin` hoy solo registra en el log. Si se envía por correo y el proveedor está caído, la propia alerta fallará: conviene añadir Slack, Teams o un webhook.
-5. **Reprogramación al editar la fecha.** `actualizar` puede cambiar `fechaReserva`, pero el recordatorio ya programado sigue calculado para la fecha antigua. Se resuelve validando en `enviarRecordatorio` que la fecha aún corresponda, o reprogramando al actualizar.
-6. **Reservas con más de ~49 días de anticipación.** El plugin de mensajes retrasados admite como máximo ~49 días (2³² ms), así que el recordatorio llegaría antes de tiempo. Solución: que el consumidor compruebe si ya es el momento y, si no, se reprograme.
-7. **Panel React de la DLQ** (opcional, si lo exige la evaluación): consulta `GET /api/admin/dlq` cada 5 s, muestra las tarjetas de cada cola y un botón "Reprocesar".
-8. **Patrón Outbox.** `AFTER_COMMIT` evita publicar reservas revertidas, pero si RabbitMQ está caído justo después del commit, el evento se pierde. Para garantía total: guardar el evento en una tabla `outbox` dentro de la misma transacción y publicarlo con un `@Scheduled`.
-9. **Zona horaria.** `LocalDateTime.now()` usa la del servidor. Fijar `ZoneId.of("America/Santiago")` en `ReservaPublisher` para que "09:00" sea hora de Chile.
-10. **Pruebas automatizadas** de `ReservaProcesos` y de las consultas `confirmarAsistencia` / `expirar`.
-
----
-
-## 13. Limitaciones conocidas
-
-- Con el enum de dos estados no se distingue una reserva cancelada por el usuario de una expirada. Si hace falta para reportes, agregar una columna `motivo_cancelacion` (`USUARIO`, `EXPIRADA`) sin tocar el enum.
-- `actualizar` con `status = CONFIRMED` sobre una reserva cancelada la reactiva, pero conserva las banderas y no reprograma recordatorios.
-- `DlqMonitor` vuelve a alertar tras reiniciar la app si la DLQ ya tenía mensajes, porque guarda el último conteo en memoria.
-- Los mensajes de la DLQ se borran solos a los 7 días, sin aviso.
-- Los mensajes del plugin de retraso no se replican en un clúster de RabbitMQ.
-- Con `prefetch: 1` y un consumidor por cola, el procesamiento es secuencial. Para el volumen esperado es suficiente; se puede subir si crece.

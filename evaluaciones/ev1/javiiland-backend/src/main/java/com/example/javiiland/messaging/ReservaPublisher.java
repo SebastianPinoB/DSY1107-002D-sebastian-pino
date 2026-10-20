@@ -27,7 +27,7 @@ public class ReservaPublisher {
         var msg = new ReservaEvento(e.reservaId());
         rabbit.convertAndSend(RabbitConfig.EX, "reserva.creada", msg);
 
-        LocalDateTime cuando = e.fechaReserva().minusDays(DIAS_ANTES).atTime(HORA_RECORDATORIO);
+        LocalDateTime cuando = LocalDateTime.now().plusMinutes(1);
         long delay = Duration.between(LocalDateTime.now(), cuando).toMillis();
         if (delay <= 0) return;                                  // muy próxima: sin reconfirmación
 

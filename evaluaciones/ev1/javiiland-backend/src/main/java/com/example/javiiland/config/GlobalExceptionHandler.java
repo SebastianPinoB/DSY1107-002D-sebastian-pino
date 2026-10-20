@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -43,6 +44,12 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = cuerpoBase(HttpStatus.BAD_REQUEST, "Hay datos inválidos en la solicitud");
         body.put("errors", errores);
         return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleJsonInvalido(HttpMessageNotReadableException ex) {
+        return ResponseEntity.badRequest()
+                .body(cuerpoBase(HttpStatus.BAD_REQUEST, "El cuerpo de la solicitud falta o no es un JSON válido"));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
