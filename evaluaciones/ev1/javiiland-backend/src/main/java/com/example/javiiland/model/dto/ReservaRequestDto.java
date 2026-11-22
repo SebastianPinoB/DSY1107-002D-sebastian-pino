@@ -1,5 +1,6 @@
 package com.example.javiiland.model.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -9,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
  
 import java.time.LocalDate;
+import java.util.List;
  
 @Getter
 @Setter
@@ -24,5 +26,8 @@ public class ReservaRequestDto {
     private String eventName;
  
     private String description;
+
+    @Valid
+    private List<EquipoUsoDto> equipos;
 }
  

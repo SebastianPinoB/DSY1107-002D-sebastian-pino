@@ -1,19 +1,25 @@
 spring:
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: mantenimiento
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.value.default.type: com.example.javiiland.messaging.kafka.UsoEquipamientoEvent
+        spring.json.trusted.packages: com.example.javiiland.messaging.kafka
+        spring.json.use.type.headers: false
     listener:
-      simple:
-        acknowledge-mode: manual
-        prefetch: 1
-        default-requeue-rejected: false
-        retry:
-          enabled: false
-  mail:
-    host: localhost
-    port: 1025
+      ack-mode: record
 
 app:
   url: http://localhost:5173

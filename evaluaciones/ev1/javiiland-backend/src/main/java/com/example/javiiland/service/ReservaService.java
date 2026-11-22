@@ -10,15 +10,21 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.example.javiiland.messaging.ReservaCreadaEvent;
+import com.example.javiiland.messaging.kafka.UsoEquipamientoCambioEvent;
+import com.example.javiiland.model.Equipo;
 import com.example.javiiland.model.Reserva;
+import com.example.javiiland.model.ReservaEquipo;
 import com.example.javiiland.model.ReservaStatus;
 import com.example.javiiland.model.TipoReserva;
 import com.example.javiiland.model.Usuario;
 import com.example.javiiland.model.dto.CalendarioDto;
+import com.example.javiiland.model.dto.EquipoUsoDto;
 import com.example.javiiland.model.dto.ReservaAdminRequestDto;
 import com.example.javiiland.model.dto.ReservaRequestDto;
 import com.example.javiiland.model.dto.ReservaResponseDto;
 import com.example.javiiland.model.dto.ReservaUpdateDto;
+import com.example.javiiland.repository.EquipoRepository;
+import com.example.javiiland.repository.ReservaEquipoRepository;
 import com.example.javiiland.repository.ReservaRepository;
 import com.example.javiiland.repository.UsuarioRepository;
 
@@ -26,14 +32,21 @@ import com.example.javiiland.repository.UsuarioRepository;
 public class ReservaService {
     private final ReservaRepository reservaRepository;
     private final UsuarioRepository usuarioRepository;
-    private final ApplicationEventPublisher eventPublisher;            // NUEVO
+    private final ApplicationEventPublisher eventPublisher; // NUEVO
+
+    private final EquipoRepository equipoRepository;
+    private final ReservaEquipoRepository reservaEquipoRepository;
 
     public ReservaService(ReservaRepository reservaRepository,
-                          UsuarioRepository usuarioRepository,
-                          ApplicationEventPublisher eventPublisher) {  // NUEVO
+            UsuarioRepository usuarioRepository,
+            ApplicationEventPublisher eventPublisher,
+            EquipoRepository equipoRepository,
+            ReservaEquipoRepository reservaEquipoRepository) {
         this.reservaRepository = reservaRepository;
         this.usuarioRepository = usuarioRepository;
         this.eventPublisher = eventPublisher;
+        this.equipoRepository = equipoRepository;
+        this.reservaEquipoRepository = reservaEquipoRepository;
     }
 
     /**
@@ -47,6 +60,10 @@ public class ReservaService {
         }
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        // NUEVO: falla con 409 si algún equipo está EN_MANTENCION en esa fecha
+        List<ReservaEquipo> asignaciones = resolverEquipos(request.getEquipos(), request.getReservationDate());
+
         Reserva reserva = Reserva.builder()
                 .fechaReserva(request.getReservationDate())
                 .nombreEvento(request.getEventName())
@@ -56,7 +73,13 @@ public class ReservaService {
                 .usuario(usuario)
                 .build();
         Reserva guardada = reservaRepository.save(reserva);
-        publicarCreada(guardada);                                      // NUEVO
+
+        // NUEVO
+        asignaciones.forEach(a -> a.setReserva(guardada));
+        reservaEquipoRepository.saveAll(asignaciones);
+        publicarUsoEquipos(guardada, asignaciones, false);
+
+        publicarCreada(guardada);
         return toResponse(guardada);
     }
 
@@ -94,13 +117,14 @@ public class ReservaService {
                 .usuario(propietario)
                 .build();
         Reserva guardada = reservaRepository.save(reserva);
-        publicarCreada(guardada);                                      // NUEVO (el publisher ignora los BLOQUEO)
+        publicarCreada(guardada); // NUEVO (el publisher ignora los BLOQUEO)
         return toResponse(guardada);
     }
 
     /**
      * NUEVO. Reconfirmación de asistencia desde el enlace del correo.
-     * Devuelve false si el token no existe, ya se usó, o la reserva ya no está vigente.
+     * Devuelve false si el token no existe, ya se usó, o la reserva ya no está
+     * vigente.
      */
     @Transactional
     public boolean confirmarAsistencia(String token) {
@@ -126,21 +150,31 @@ public class ReservaService {
     public ReservaResponseDto actualizar(Long id, ReservaUpdateDto request) {
         Reserva reserva = obtener(id);
         if (request.getReservationDate() != null && !request.getReservationDate().equals(reserva.getFechaReserva())
-                && reservaRepository.existsByFechaReservaAndEstatus(request.getReservationDate(), ReservaStatus.CONFIRMED)) {
+                && reservaRepository.existsByFechaReservaAndEstatus(request.getReservationDate(),
+                        ReservaStatus.CONFIRMED)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La fecha ya está reservada");
         }
-        if (request.getReservationDate() != null) reserva.setFechaReserva(request.getReservationDate());
-        if (request.getEventName() != null) reserva.setNombreEvento(request.getEventName());
-        if (request.getDescription() != null) reserva.setDescripcion(request.getDescription());
-        if (request.getStatus() != null) reserva.setEstatus(request.getStatus());
+        if (request.getReservationDate() != null)
+            reserva.setFechaReserva(request.getReservationDate());
+        if (request.getEventName() != null)
+            reserva.setNombreEvento(request.getEventName());
+        if (request.getDescription() != null)
+            reserva.setDescripcion(request.getDescription());
+        if (request.getStatus() != null)
+            reserva.setEstatus(request.getStatus());
         return toResponse(reservaRepository.save(reserva));
     }
 
     @Transactional
     public ReservaResponseDto cancelar(Long id) {
         Reserva reserva = obtener(id);
+        boolean yaCancelada = reserva.getEstatus() == ReservaStatus.CANCELLED;
         reserva.setEstatus(ReservaStatus.CANCELLED);
-        return toResponse(reservaRepository.save(reserva));
+        Reserva guardada = reservaRepository.save(reserva);
+        if (!yaCancelada) { // NUEVO: descuenta el desgaste de una reserva que no se realizará
+            publicarUsoEquipos(guardada, reservaEquipoRepository.findByReservaId(id), true);
+        }
+        return toResponse(guardada);
     }
 
     /**
@@ -172,7 +206,8 @@ public class ReservaService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva no encontrada"));
     }
 
-    // NUEVO. Se publica dentro de la transacción; ReservaPublisher lo envía a RabbitMQ solo tras el COMMIT.
+    // NUEVO. Se publica dentro de la transacción; ReservaPublisher lo envía a
+    // RabbitMQ solo tras el COMMIT.
     private void publicarCreada(Reserva r) {
         eventPublisher.publishEvent(new ReservaCreadaEvent(r.getId(), r.getFechaReserva(), r.getTipo()));
     }
@@ -191,5 +226,29 @@ public class ReservaService {
                 .creadoEn(reserva.getCreadaEn())
                 .actualizadoEn(reserva.getActualizadaEn())
                 .build();
+    }
+
+    private List<ReservaEquipo> resolverEquipos(List<EquipoUsoDto> items, LocalDate fecha) {
+        if (items == null || items.isEmpty())
+            return List.of();
+        return items.stream().map(i -> {
+            Equipo equipo = equipoRepository.findById(i.getEquipoId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "Equipo no encontrado: " + i.getEquipoId()));
+            if (equipo.estaBloqueadoEn(fecha)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "El equipo '" + equipo.getNombre() + "' está en mantención en esa fecha");
+            }
+            return ReservaEquipo.builder().equipo(equipo).horas(i.getHoras()).build();
+        }).toList();
+    }
+
+    private void publicarUsoEquipos(Reserva r, List<ReservaEquipo> asignaciones, boolean reversa) {
+        if (r.getTipo() != TipoReserva.CLIENTE || asignaciones.isEmpty())
+            return;
+        var items = asignaciones.stream()
+                .map(a -> new UsoEquipamientoCambioEvent.Item(a.getEquipo().getId(), a.getHoras()))
+                .toList();
+        eventPublisher.publishEvent(new UsoEquipamientoCambioEvent(r.getId(), r.getFechaReserva(), items, reversa));
     }
 }
