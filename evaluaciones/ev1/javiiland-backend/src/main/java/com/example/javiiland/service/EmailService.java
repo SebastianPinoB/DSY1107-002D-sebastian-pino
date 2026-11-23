@@ -1,5 +1,6 @@
 package com.example.javiiland.service;
 
+import com.example.javiiland.messaging.kafka.AlertaMantenimientoEvent;
 import com.example.javiiland.model.Reserva;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -18,6 +19,7 @@ public class EmailService {
     private final JavaMailSender mailSender;
     @Value("${app.mail-from}") private String from;
     @Value("${app.simular-fallos:false}") private boolean simular;
+    @Value("${javiiland.admin.email}") private String adminEmail;
 
     private void simularFallo() {
         if (simular) throw new RuntimeException("Fallo simulado del proveedor de correo");
@@ -58,6 +60,12 @@ public class EmailService {
         enviar(r.getUsuario().getEmail(), "Reserva cancelada: " + r.getNombreEvento(),
             "<p>Cancelamos tu reserva del <b>" + r.getFechaReserva()
             + "</b> por falta de confirmación. La fecha quedó disponible.</p>", null, null);
+    }
+
+    public void enviarAlertaMantenimiento(AlertaMantenimientoEvent a) {
+        enviar(adminEmail, "Equipo en mantención: " + a.equipo(),
+            "<p>El equipo <b>" + a.equipo() + "</b> quedó bloqueado desde el <b>" + a.bloqueadoDesde()
+            + "</b>.</p><p>Motivo: " + a.motivo() + " (" + a.detalle() + ")</p>", null, null);
     }
 
     public void enviarAlertaAdmin(String cola, int mensajes) {

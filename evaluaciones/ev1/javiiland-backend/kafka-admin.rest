@@ -1,0 +1,63 @@
+### Variables: token de ADMIN (de /api/usuarios/login o de Azure AD)
+@host = http://localhost:8080
+@token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc5NTQ3NDc3NCwidXNlcklkIjoxLCJpYXQiOjE3OTU0NDU5NzQsInJvbGVzIjpbIkFETUlOIl19.qv0RJ18LxZRAE2YicsVaBjS477TeCIiXKDgatGPGZTA
+
+### 1. Listar tópicos
+GET {{host}}/api/admin/kafka/topics
+Authorization: Bearer {{token}}
+
+### 2. Detalle de un tópico (particiones, réplicas, configuración)
+GET {{host}}/api/admin/kafka/topics/uso-equipamiento
+Authorization: Bearer {{token}}
+
+### 3. Crear tópico con configuración -> 201
+POST {{host}}/api/admin/kafka/topics
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "prueba-admin",
+  "partitions": 2,
+  "replicationFactor": 3,
+  "configs": { "retention.ms": "86400000", "cleanup.policy": "delete" }
+}
+
+### 4. Crear el mismo tópico otra vez -> 409
+POST {{host}}/api/admin/kafka/topics
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "prueba-admin", "partitions": 2, "replicationFactor": 3 }
+
+### 5. Nombre inválido -> 400
+POST {{host}}/api/admin/kafka/topics
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "nombre con espacios", "partitions": 1 }
+
+### 6. Cambiar retención y aumentar particiones
+PATCH {{host}}/api/admin/kafka/topics/prueba-admin
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "partitions": 4, "configs": { "retention.ms": "172800000" } }
+
+### 7. Reducir particiones -> 400
+PATCH {{host}}/api/admin/kafka/topics/prueba-admin
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "partitions": 1 }
+
+### 8. Eliminar tópico -> 200
+DELETE {{host}}/api/admin/kafka/topics/prueba-admin
+Authorization: Bearer {{token}}
+
+### 9. Eliminar un tópico de la solución -> 403
+DELETE {{host}}/api/admin/kafka/topics/uso-equipamiento
+Authorization: Bearer {{token}}
+
+### 10. Tópico inexistente -> 404
+GET {{host}}/api/admin/kafka/topics/no-existe
+Authorization: Bearer {{token}}

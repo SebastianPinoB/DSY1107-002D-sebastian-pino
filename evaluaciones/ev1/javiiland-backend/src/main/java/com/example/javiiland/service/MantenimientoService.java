@@ -109,8 +109,19 @@ public class MantenimientoService {
    }
 
    @Transactional(readOnly = true)
-   public List<AlertaMantenimiento> listarAlertas(boolean resueltas) {
-      return alertaRepository.findByResueltaOrderByCreadaEnDesc(resueltas);
+   public List<AlertaResponseDto> listarAlertas(boolean resueltas) {
+      return alertaRepository.findByResueltaOrderByCreadaEnDesc(resueltas).stream()
+            .map(a -> AlertaResponseDto.builder()
+                  .id(a.getId())
+                  .equipoId(a.getEquipo().getId())
+                  .equipo(a.getEquipo().getNombre())
+                  .motivo(a.getMotivo())
+                  .detalle(a.getDetalle())
+                  .creadaEn(a.getCreadaEn())
+                  .resuelta(a.isResuelta())
+                  .resueltaEn(a.getResueltaEn())
+                  .build())
+            .toList();
    }
 
    @Transactional(readOnly = true)

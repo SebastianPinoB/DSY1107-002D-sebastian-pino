@@ -108,6 +108,8 @@ public class ReservaService {
                 ? request.getTipo()
                 : (propietario == null ? TipoReserva.BLOQUEO : TipoReserva.CLIENTE);
 
+        List<ReservaEquipo> asignaciones = resolverEquipos(request.getEquipos(), request.getReservationDate());
+
         Reserva reserva = Reserva.builder()
                 .fechaReserva(request.getReservationDate())
                 .nombreEvento(request.getEventName())
@@ -117,6 +119,11 @@ public class ReservaService {
                 .usuario(propietario)
                 .build();
         Reserva guardada = reservaRepository.save(reserva);
+
+        asignaciones.forEach(a -> a.setReserva(guardada));
+        reservaEquipoRepository.saveAll(asignaciones);
+        publicarUsoEquipos(guardada, asignaciones, false);
+
         publicarCreada(guardada); // NUEVO (el publisher ignora los BLOQUEO)
         return toResponse(guardada);
     }
@@ -160,9 +167,14 @@ public class ReservaService {
             reserva.setNombreEvento(request.getEventName());
         if (request.getDescription() != null)
             reserva.setDescripcion(request.getDescription());
+        boolean estabaCancelada = reserva.getEstatus() == ReservaStatus.CANCELLED;
         if (request.getStatus() != null)
             reserva.setEstatus(request.getStatus());
-        return toResponse(reservaRepository.save(reserva));
+        Reserva guardada = reservaRepository.save(reserva);
+        if (!estabaCancelada && guardada.getEstatus() == ReservaStatus.CANCELLED) {
+            publicarUsoEquipos(guardada, reservaEquipoRepository.findByReservaId(id), true);
+        }
+        return toResponse(guardada);
     }
 
     @Transactional

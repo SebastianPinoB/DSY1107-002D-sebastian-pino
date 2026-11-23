@@ -3,6 +3,7 @@ package com.example.javiiland.config;
 import com.example.javiiland.messaging.kafka.UsoEquipamientoPublisher;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,26 +23,49 @@ import java.util.Map;
 @Configuration
 public class KafkaConfig {
 
-   @Bean
-   NewTopic usoEquipamientoTopic() {
-      return TopicBuilder.name(UsoEquipamientoPublisher.TOPIC).partitions(3).replicas(1).build();
+   private static final String SIETE_DIAS_MS = String.valueOf(7L * 24 * 60 * 60 * 1000);
+   private static final String TREINTA_DIAS_MS = String.valueOf(30L * 24 * 60 * 60 * 1000);
+
+   @Value("${app.kafka.replication-factor:3}")
+   private short replicationFactor;
+
+   @Value("${app.kafka.min-insync-replicas:2}")
+   private String minInsyncReplicas;
+
+   private NewTopic topic(String nombre, int particiones, String retencionMs) {
+      return TopicBuilder.name(nombre)
+            .partitions(particiones)
+            .replicas(replicationFactor)
+            .config(TopicConfig.RETENTION_MS_CONFIG, retencionMs)
+            .config(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE)
+            .config(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, minInsyncReplicas)
+            .build();
    }
 
    @Bean
+   NewTopic usoEquipamientoTopic() {
+      return topic(UsoEquipamientoPublisher.TOPIC, 3, SIETE_DIAS_MS);
+   }
+
+   // misma cantidad de particiones que el original: el recoverer publica en la misma partición
+   @Bean
    NewTopic usoEquipamientoDlt() {
-      // misma cantidad de particiones que el original (el recoverer usa la misma
-      // partición)
-      return TopicBuilder.name(UsoEquipamientoPublisher.TOPIC + ".DLT").partitions(3).replicas(1).build();
+      return topic(UsoEquipamientoPublisher.TOPIC + ".DLT", 3, TREINTA_DIAS_MS);
    }
 
    @Bean
    NewTopic alertasTopic() {
-      return TopicBuilder.name(UsoEquipamientoPublisher.TOPIC_ALERTAS).partitions(1).replicas(1).build();
+      return topic(UsoEquipamientoPublisher.TOPIC_ALERTAS, 1, SIETE_DIAS_MS);
+   }
+
+   @Bean
+   NewTopic alertasDlt() {
+      return topic(UsoEquipamientoPublisher.TOPIC_ALERTAS + ".DLT", 1, TREINTA_DIAS_MS);
    }
 
    /**
     * Reintenta 3 veces con backoff exponencial (1s, 2s, 4s) y luego envía el
-    * mensaje a uso-equipamiento.DLT. Spring Boot aplica este bean al listener.
+    * mensaje a <topic>.DLT. Spring Boot aplica este bean al listener.
     */
    @Bean
    DefaultErrorHandler kafkaErrorHandler(KafkaTemplate<String, Object> template,

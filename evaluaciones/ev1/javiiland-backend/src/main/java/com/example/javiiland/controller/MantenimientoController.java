@@ -1,7 +1,6 @@
 package com.example.javiiland.controller;
 
 import com.example.javiiland.messaging.kafka.UsoEquipamientoPublisher;
-import com.example.javiiland.model.AlertaMantenimiento;
 import com.example.javiiland.model.dto.*;
 import com.example.javiiland.service.MantenimientoService;
 import jakarta.validation.Valid;
@@ -53,7 +52,7 @@ public class MantenimientoController {
 
    @PreAuthorize("hasRole('ADMIN')")
    @GetMapping("/mantenimiento/alertas")
-   public List<AlertaMantenimiento> alertas(@RequestParam(defaultValue = "false") boolean resueltas) {
+   public List<AlertaResponseDto> alertas(@RequestParam(defaultValue = "false") boolean resueltas) {
       return service.listarAlertas(resueltas);
    }
 }

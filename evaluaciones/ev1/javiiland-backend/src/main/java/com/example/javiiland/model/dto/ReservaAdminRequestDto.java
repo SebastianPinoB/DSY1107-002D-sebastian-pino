@@ -1,9 +1,11 @@
 package com.example.javiiland.model.dto;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import com.example.javiiland.model.TipoReserva;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -37,4 +39,8 @@ public class ReservaAdminRequestDto {
 
     /** Opcional: si se omite, se infiere BLOQUEO sin usuarioId y CLIENTE con usuarioId. */
     private TipoReserva tipo;
+
+    /** Opcional: equipos usados en la reserva (solo aplica a reservas de cliente). */
+    @Valid
+    private List<EquipoUsoDto> equipos;
 }
