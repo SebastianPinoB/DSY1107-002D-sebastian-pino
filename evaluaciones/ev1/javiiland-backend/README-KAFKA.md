@@ -299,10 +299,10 @@ El equipo vuelve a `DISPONIBLE` con contadores en 0, y ya se puede reservar de n
 
 ### 3.10 Escenario 6: cancelación (evento REVERSA)
 
-Cancela una reserva con equipos (ajusta el `id` y el método/ruta a los de tu `ReservaController`):
+Cancela una reserva con equipos (ajusta el `id`):
 
 ```bash
-curl -X PUT http://localhost:8080/api/reservas/1/cancelar \
+curl -X DELETE http://localhost:8080/api/reservas/1 \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -322,6 +322,16 @@ EOF
 ```
 
 **Resultado**: en los logs del backend aparece una vez el procesamiento y una vez `Evento duplicado ignorado: demo-duplicado-1`. Las horas del equipo suben solo 1.
+
+También se puede probar desde el Panel de Administración. El endpoint protegido `POST /api/admin/kafka/test-event` publica texto raw con `StringSerializer`; responde `202 Accepted` cuando Kafka confirma el envío:
+
+```bash
+curl -X POST http://localhost:8080/api/admin/kafka/test-event \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"key":"2","payload":"{\"eventId\":\"demo-duplicado-1\",\"tipo\":\"USO\",\"reservaId\":null,\"equipoId\":2,\"horas\":1.0,\"fecha\":\"2026-12-20\",\"detalle\":null}"}'
+```
+
+Envía el mismo request dos veces para comprobar la idempotencia. Para las pruebas de DLT, cambia `key`/`payload` a `1`/`esto-no-es-json` o publica un evento JSON válido con `equipoId:999`. La llegada a `uso-equipamiento.DLT` es asíncrona; verifícala en Kafka-UI o con el consumidor de la sección siguiente.
 
 ### 3.12 Escenario 8: Dead Letter Topic
 
@@ -438,8 +448,9 @@ messaging/kafka/UsoEquipamientoPublisher.java
 messaging/kafka/MantenimientoConsumer.java
 messaging/kafka/AlertaMantenimientoConsumer.java
 controller/KafkaAdminController.java
+controller/KafkaTestEventController.java
 service/KafkaAdminService.java
-model/dto/KafkaTopicRequestDto.java · KafkaTopicConfigDto.java · KafkaTopicResponseDto.java · AlertaResponseDto.java
+model/dto/KafkaTestEventRequestDto.java · KafkaTopicRequestDto.java · KafkaTopicConfigDto.java · KafkaTopicResponseDto.java · AlertaResponseDto.java
 model/Equipo.java · EstadoEquipo.java · MotivoAlerta.java
 model/ReservaEquipo.java · AlertaMantenimiento.java · EventoProcesado.java
 model/dto/EquipoUsoDto.java · EquipoRequestDto.java · EquipoResponseDto.java · ReporteFallaDto.java

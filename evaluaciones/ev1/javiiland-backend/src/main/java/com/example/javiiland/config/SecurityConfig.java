@@ -83,8 +83,7 @@ public class SecurityConfig {
         configuration.setAllowedOriginPatterns(List.of(
             "http://localhost:4200", 
             "http://localhost:5173", 
-            "http://*.s3-website-*.amazonaws.com", 
-            "http://*.s3-website.*.amazonaws.com"
+            "http://localhost:4173"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));

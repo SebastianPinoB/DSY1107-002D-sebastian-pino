@@ -54,7 +54,7 @@ public class MantenimientoService {
          }
          case FALLA -> bloquear(equipo, MotivoAlerta.FALLA_REPORTADA, e.detalle(), e.fecha());
       }
-      equipoRepository.save(equipo);
+      equipoRepository.saveAndFlush(equipo);
       procesadoRepository.save(new EventoProcesado(e.eventId()));
    }
 

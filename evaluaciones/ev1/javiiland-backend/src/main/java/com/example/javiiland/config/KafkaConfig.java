@@ -2,6 +2,7 @@ package com.example.javiiland.config;
 
 import com.example.javiiland.messaging.kafka.UsoEquipamientoPublisher;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
@@ -16,6 +17,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
+import org.springframework.kafka.support.serializer.DeserializationException;
+import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -63,6 +66,32 @@ public class KafkaConfig {
       return topic(UsoEquipamientoPublisher.TOPIC_ALERTAS + ".DLT", 1, TREINTA_DIAS_MS);
    }
 
+   @Bean("kafkaTemplate")
+   KafkaTemplate<String, Object> kafkaTemplate(
+         @Value("${spring.kafka.bootstrap-servers}") String bootstrap) {
+      Map<String, Object> producerProperties = new LinkedHashMap<>();
+      producerProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
+      producerProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+      producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
+      producerProperties.put(ProducerConfig.ACKS_CONFIG, "all");
+      producerProperties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+      producerProperties.put("spring.json.add.type.headers", false);
+
+      return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(producerProperties));
+   }
+
+   @Bean("kafkaRawTemplate")
+   KafkaTemplate<String, String> kafkaRawTemplate(
+         @Value("${spring.kafka.bootstrap-servers}") String bootstrap) {
+      Map<String, Object> producerProperties = new LinkedHashMap<>();
+      producerProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
+      producerProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+      producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+      producerProperties.put(ProducerConfig.ACKS_CONFIG, "all");
+
+      return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(producerProperties));
+   }
+
    /**
     * Reintenta 3 veces con backoff exponencial (1s, 2s, 4s) y luego envía el
     * mensaje a <topic>.DLT. Spring Boot aplica este bean al listener.
@@ -86,8 +115,10 @@ public class KafkaConfig {
       backoff.setInitialInterval(1_000);
       backoff.setMultiplier(2.0);
 
-      var handler = new DefaultErrorHandler(new DeadLetterPublishingRecoverer(templates), backoff);
-      handler.addNotRetryableExceptions(IllegalArgumentException.class); // datos inválidos: directo a DLT
+      var recoverer = new DeadLetterPublishingRecoverer(templates,
+            (record, exception) -> new TopicPartition(record.topic() + ".DLT", record.partition()));
+      var handler = new DefaultErrorHandler(recoverer, backoff);
+      handler.addNotRetryableExceptions(IllegalArgumentException.class, DeserializationException.class);
       return handler;
    }
 }

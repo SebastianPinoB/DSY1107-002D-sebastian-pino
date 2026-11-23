@@ -1,7 +1,7 @@
 services:
   rabbitmq:
     build:
-      context: .
+      context: ./javiiland-backend
       dockerfile: Dockerfile.rabbit
     container_name: rabbitmq-reservas
     ports:
@@ -17,6 +17,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - javiiland
 
   mysql:
     image: mysql:8
@@ -32,12 +34,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - javiiland
 
   mailpit:
     image: axllent/mailpit
     ports:
       - "1025:1025"   # SMTP
       - "8025:8025"   # Web
+    networks:
+      - javiiland
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
@@ -50,6 +56,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - javiiland
 
   kafka1:
     image: confluentinc/cp-kafka:7.6.1
@@ -77,6 +85,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+    networks:
+      - javiiland
 
   kafka2:
     image: confluentinc/cp-kafka:7.6.1
@@ -104,6 +114,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+    networks:
+      - javiiland
 
   kafka3:
     image: confluentinc/cp-kafka:7.6.1
@@ -131,6 +143,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+    networks:
+      - javiiland
 
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
@@ -147,10 +161,12 @@ services:
         condition: service_healthy
       kafka3:
         condition: service_healthy
+    networks:
+      - javiiland
 
   backend:
     build:
-      context: .
+      context: ./javiiland-backend
       dockerfile: Dockerfile
     container_name: backend-reservas
     ports:
@@ -180,7 +196,31 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    networks:
+      - javiiland
+
+  frontend:
+    build:
+      context: ./javiiland-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+        VITE_AZURE_CLIENT_ID: ${VITE_AZURE_CLIENT_ID:-}
+        VITE_AZURE_TENANT_ID: ${VITE_AZURE_TENANT_ID:-}
+        VITE_AZURE_SCOPES: ${VITE_AZURE_SCOPES:-}
+    container_name: frontend-reservas
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - javiiland
 
 volumes:
   rabbitmq_data:
   mysql_data:
+
+networks:
+  javiiland:
+    driver: bridge

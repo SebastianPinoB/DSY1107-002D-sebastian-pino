@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { reservaService } from '../api/reservaService'
 import { usuarioService } from '../api/usuarioService'
 import { extractErrorMessage } from '../api/axiosClient'
 import ReservaCard from '../components/ReservaCard'
+import EquipmentAlertsPanel from '../components/EquipmentAlertsPanel'
+import KafkaScenarioLab from '../components/KafkaScenarioLab'
 
 const FILTROS = [
   { id: 'ALL', label: 'Todas' },
@@ -27,8 +29,11 @@ export default function AdminDashboardPage() {
 
   const [cancellingId, setCancellingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [equiposKafka, setEquiposKafka] = useState([])
+  const [maintenanceRefreshKey, setMaintenanceRefreshKey] = useState(0)
+  const [actionLog, setActionLog] = useState([])
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
@@ -43,11 +48,29 @@ export default function AdminDashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadData()
+  }, [loadData])
+
+  const handleEquiposLoaded = useCallback((equiposData) => {
+    setEquiposKafka(equiposData)
   }, [])
+
+  const handleActionResult = useCallback((result) => {
+    setActionLog((entries) =>
+      [{ ...result, id: `${Date.now()}-${entries.length}`, createdAt: new Date().toISOString() }, ...entries].slice(
+        0,
+        20
+      )
+    )
+  }, [])
+
+  const refreshScenarioData = useCallback(() => {
+    setMaintenanceRefreshKey((current) => current + 1)
+    loadData()
+  }, [loadData])
 
   const reservasFiltradas = useMemo(() => {
     const filtradas = filtro === 'ALL' ? reservas : reservas.filter((r) => r.status === filtro)
@@ -58,10 +81,23 @@ export default function AdminDashboardPage() {
     if (!window.confirm('¿Seguro que quieres cancelar esta reserva? La fecha quedará libre de nuevo.')) return
     setCancellingId(id)
     try {
-      await reservaService.cancelar(id)
-      await loadData()
+      const response = await reservaService.cancelarConRespuesta(id)
+      handleActionResult({
+        action: `Cancelar reserva #${id}`,
+        status: response.status,
+        success: true,
+        message: 'Reserva cancelada.',
+      })
+      refreshScenarioData()
     } catch (err) {
-      setError(extractErrorMessage(err, 'No se pudo cancelar la reserva.'))
+      const message = extractErrorMessage(err, 'No se pudo cancelar la reserva.')
+      setError(message)
+      handleActionResult({
+        action: `Cancelar reserva #${id}`,
+        status: err.response?.status ?? 'Error',
+        success: false,
+        message,
+      })
     } finally {
       setCancellingId(null)
     }
@@ -75,10 +111,23 @@ export default function AdminDashboardPage() {
     if (!window.confirm(mensaje)) return
     setDeletingId(id)
     try {
-      await reservaService.eliminarDefinitivo(id)
-      await loadData()
+      const response = await reservaService.eliminarDefinitivo(id)
+      handleActionResult({
+        action: `Eliminar reserva #${id}`,
+        status: response.status,
+        success: true,
+        message: 'Reserva eliminada definitivamente.',
+      })
+      refreshScenarioData()
     } catch (err) {
-      setError(extractErrorMessage(err, 'No se pudo eliminar la reserva.'))
+      const message = extractErrorMessage(err, 'No se pudo eliminar la reserva.')
+      setError(message)
+      handleActionResult({
+        action: `Eliminar reserva #${id}`,
+        status: err.response?.status ?? 'Error',
+        success: false,
+        message,
+      })
     } finally {
       setDeletingId(null)
     }
@@ -100,17 +149,30 @@ export default function AdminDashboardPage() {
 
     setCreating(true)
     try {
-      await reservaService.crearComoAdmin({
+      const response = await reservaService.crearComoAdminConRespuesta({
         reservationDate: createForm.reservationDate,
         eventName: createForm.eventName,
         description: createForm.description,
         usuarioId: createForm.esBloqueo ? undefined : Number(createForm.usuarioId),
       })
+      handleActionResult({
+        action: 'Crear reserva administrativa',
+        status: response.status,
+        success: true,
+        message: `Reserva ${response.data?.id ?? ''} creada.`,
+      })
       setCreateForm(CREATE_FORM_INICIAL)
       setShowCreateForm(false)
-      await loadData()
+      refreshScenarioData()
     } catch (err) {
-      setCreateError(extractErrorMessage(err, 'No se pudo crear la reserva. Verifica que la fecha esté libre.'))
+      const message = extractErrorMessage(err, 'No se pudo crear la reserva. Verifica que la fecha esté libre.')
+      setCreateError(message)
+      handleActionResult({
+        action: 'Crear reserva administrativa',
+        status: err.response?.status ?? 'Error',
+        success: false,
+        message,
+      })
     } finally {
       setCreating(false)
     }
@@ -127,6 +189,43 @@ export default function AdminDashboardPage() {
           {showCreateForm ? 'Cerrar' : 'Nueva reserva'}
         </button>
       </div>
+
+      <EquipmentAlertsPanel
+        refreshKey={maintenanceRefreshKey}
+        onEquiposLoaded={handleEquiposLoaded}
+        onActionResult={handleActionResult}
+        onDataChanged={refreshScenarioData}
+      />
+      <KafkaScenarioLab
+        equipos={equiposKafka}
+        reservas={reservas}
+        onActionResult={handleActionResult}
+        onDataChanged={refreshScenarioData}
+      />
+
+      <section className="admin-action-log card" aria-labelledby="admin-action-log-title">
+        <div className="kafka-lab__section-heading">
+          <div>
+            <h2 id="admin-action-log-title">Respuestas del backend</h2>
+            <p className="muted">Últimas operaciones HTTP ejecutadas desde los escenarios Kafka.</p>
+          </div>
+        </div>
+        {actionLog.length === 0 ? (
+          <p className="empty-state">Las respuestas de las operaciones aparecerán aquí.</p>
+        ) : (
+          <ol className="admin-action-log__list">
+            {actionLog.map((entry) => (
+              <li className={entry.success ? 'admin-action-log__entry' : 'admin-action-log__entry admin-action-log__entry--error'} key={entry.id}>
+                <span className="admin-action-log__time">
+                  {new Date(entry.createdAt).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+                <strong>HTTP {entry.status}</strong>
+                <span>{entry.action}: {entry.message}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
 
       {showCreateForm && (
         <form onSubmit={handleCreateSubmit} className="form card admin-create-form">

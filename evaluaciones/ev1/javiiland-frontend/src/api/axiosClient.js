@@ -75,6 +75,7 @@ export function extractErrorMessage(error, fallback = 'Ocurrió un error inesper
   }
 
   if (data.message) return data.message
+  if (data.detail) return data.detail
   if (data.error) return data.error
 
   return fallback

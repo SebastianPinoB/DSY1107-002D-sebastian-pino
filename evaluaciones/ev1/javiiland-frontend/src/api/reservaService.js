@@ -6,10 +6,13 @@ import { axiosClient } from './axiosClient'
 export const reservaService = {
   // Autoservicio: el usuario dueño lo determina el backend a partir del JWT.
   crear: (reservaRequestDto) => axiosClient.post('/api/reservas', reservaRequestDto).then((res) => res.data),
+  crearConRespuesta: (reservaRequestDto) => axiosClient.post('/api/reservas', reservaRequestDto),
 
   // Solo ADMIN: crear a nombre de un cliente real o bloquear un día sin cliente.
   crearComoAdmin: (reservaAdminRequestDto) =>
     axiosClient.post('/api/reservas/admin', reservaAdminRequestDto).then((res) => res.data),
+  crearComoAdminConRespuesta: (reservaAdminRequestDto) =>
+    axiosClient.post('/api/reservas/admin', reservaAdminRequestDto),
 
   listar: () => axiosClient.get('/api/reservas').then((res) => res.data),
 
@@ -28,6 +31,7 @@ export const reservaService = {
 
   // Soft-delete: libera la fecha pero conserva el historial.
   cancelar: (id) => axiosClient.delete(`/api/reservas/${id}`).then((res) => res.data),
+  cancelarConRespuesta: (id) => axiosClient.delete(`/api/reservas/${id}`),
 
   confirmarAsistencia: (token) =>
     axiosClient.post('/api/reservas/confirmar-asistencia', null, { params: { token } }).then((res) => res.data),

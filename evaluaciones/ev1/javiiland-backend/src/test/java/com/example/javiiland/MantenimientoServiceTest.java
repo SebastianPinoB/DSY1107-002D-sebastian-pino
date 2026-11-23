@@ -82,6 +82,7 @@ public class MantenimientoServiceTest {
       assertEquals(1, eq.getUsosAcumulados());
       assertEquals(3.0, eq.getHorasAcumuladas());
       assertEquals(EstadoEquipo.DISPONIBLE, eq.getEstado());
+      verify(equipoRepository).saveAndFlush(eq);
       verify(procesadoRepository).save(any(EventoProcesado.class));
    }
 

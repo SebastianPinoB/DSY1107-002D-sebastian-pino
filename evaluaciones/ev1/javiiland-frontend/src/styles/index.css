@@ -765,6 +765,423 @@ button {
   margin-bottom: 2rem;
 }
 
+.maintenance-panel {
+  margin: 0 0 2.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-card);
+}
+
+.maintenance-panel__heading,
+.maintenance-panel__subheading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.maintenance-panel__heading {
+  margin-bottom: 1.5rem;
+}
+
+.maintenance-panel__heading p,
+.maintenance-panel__subheading p {
+  margin-bottom: 0;
+}
+
+.maintenance-panel__section + .maintenance-panel__section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.maintenance-panel__section h3 {
+  margin-bottom: 1rem;
+}
+
+.maintenance-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.maintenance-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.maintenance-table th,
+.maintenance-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.maintenance-table thead th {
+  background: var(--ink-tint);
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.maintenance-table tbody tr:last-child th,
+.maintenance-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.maintenance-table__name,
+.maintenance-table__detail {
+  display: block;
+}
+
+.maintenance-table__detail {
+  margin-top: 0.2rem;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.maintenance-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.maintenance-badge--available,
+.maintenance-badge--resolved {
+  background: color-mix(in srgb, var(--mint) 25%, white);
+  color: var(--mint-dark);
+}
+
+.maintenance-badge--maintenance,
+.maintenance-badge--active {
+  background: color-mix(in srgb, var(--coral) 18%, white);
+  color: var(--coral-dark);
+}
+
+.maintenance-badge--reason {
+  background: var(--ink-tint);
+  color: var(--ink);
+}
+
+.maintenance-alert-count {
+  display: inline-grid;
+  min-width: 1.7rem;
+  min-height: 1.7rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--marigold);
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.maintenance-filters {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.maintenance-filter {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.maintenance-filter select {
+  min-width: 150px;
+}
+
+.maintenance-team-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  align-items: end;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--paper);
+}
+
+.maintenance-team-form__actions,
+.maintenance-failure-form,
+.kafka-lab__button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.maintenance-failure-form {
+  min-width: 290px;
+}
+
+.maintenance-failure-form input {
+  min-width: 120px;
+  flex: 1;
+}
+
+.admin-action-feedback {
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-s);
+  background: color-mix(in srgb, var(--mint) 25%, white);
+  color: var(--mint-dark);
+}
+
+.kafka-lab {
+  margin-bottom: 2rem;
+}
+
+.kafka-lab__tabs {
+  flex-wrap: wrap;
+}
+
+.kafka-lab__content {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.kafka-lab__section + .kafka-lab__section {
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.kafka-lab__section h3,
+.kafka-lab__topic-create h4 {
+  margin-bottom: 0.85rem;
+}
+
+.kafka-lab__form,
+.kafka-lab__inline-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.kafka-lab__form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.kafka-lab__equipment-options {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.kafka-lab__equipment-options legend {
+  padding: 0 0.4rem;
+  font-weight: 700;
+}
+
+.kafka-lab__equipment-option {
+  display: grid;
+  grid-template-columns: auto minmax(100px, 1fr) minmax(90px, 120px);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.kafka-lab__section-heading,
+.kafka-topic__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.kafka-lab__section-heading h3,
+.kafka-topic__heading h4 {
+  margin-bottom: 0.25rem;
+}
+
+.kafka-lab__inline-form {
+  grid-template-columns: minmax(200px, 1fr) auto;
+  align-items: end;
+}
+
+.kafka-lab__topic-create {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--paper);
+}
+
+.kafka-topic-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.kafka-topic {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.kafka-topic__heading p,
+.kafka-topic__configs {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+}
+
+.kafka-topic__configs {
+  margin: 0.75rem 0;
+  overflow-wrap: anywhere;
+}
+
+.kafka-topic__edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.kafka-topic__edit .maintenance-filter {
+  min-width: 170px;
+}
+
+.admin-action-log {
+  margin-bottom: 2rem;
+}
+
+.admin-action-log__list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-action-log__entry {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.65rem 0.8rem;
+  border-left: 3px solid var(--mint-dark);
+  background: var(--paper);
+  font-size: 0.8125rem;
+}
+
+.admin-action-log__entry--error {
+  border-left-color: var(--coral-dark);
+}
+
+.admin-action-log__time {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.maintenance-alert-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.maintenance-alert {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.maintenance-alert__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.maintenance-alert__header h4 {
+  margin: 0 0 0.25rem;
+  color: var(--ink);
+}
+
+.maintenance-alert__header p {
+  margin: 0;
+}
+
+.maintenance-alert__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.maintenance-alert__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .maintenance-panel {
+    padding: 1rem;
+  }
+
+  .maintenance-panel__heading,
+  .maintenance-panel__subheading,
+  .maintenance-alert__header {
+    flex-direction: column;
+  }
+
+  .maintenance-filters {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .maintenance-team-form__actions,
+  .maintenance-failure-form,
+  .kafka-lab__section-heading,
+  .kafka-topic__heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .maintenance-failure-form {
+    min-width: 0;
+  }
+
+  .maintenance-filter select {
+    width: 100%;
+  }
+
+  .kafka-lab__inline-form {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-action-log__entry {
+    grid-template-columns: auto 1fr;
+  }
+
+  .admin-action-log__entry > span:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .maintenance-alert__badges {
+    justify-content: flex-start;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
